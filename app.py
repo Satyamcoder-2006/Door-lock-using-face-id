@@ -8,13 +8,14 @@ import shutil
 import subprocess
 import sys
 import json
-from flask import Flask, render_template, request, redirect, url_for, Response, jsonify, session
+from flask import Flask, render_template, request, redirect, url_for, Response, jsonify, session, send_from_directory, flash
 from utils import ArduinoManager, trigger_unlock, enhance_image, find_arduino_port, try_all_available_ports
 from serial.tools import list_ports
 from admin_auth import verify_password, change_password
-from access_log import log_access, get_logs
+from access_log import log_access, get_logs, clean_failed_access_logs
 from clear_logs import clear_logs_directly
 from telegram_notifier import get_notifier
+from voice_module import get_voice_module
 door_status = "Locked"
 last_recognition_time = 0
 door_open_duration = 10  # seconds
@@ -42,7 +43,12 @@ camera = None
 face_classifier = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 door_status = "Locked"
 last_face_check = 0
-face_check_interval = 0.5  # seconds
+face_check_interval = 0.2  # seconds - more responsive but still efficient
+
+# Variables to reduce excessive access denied logs
+last_failed_log_time = 0
+failed_log_cooldown = 5  # seconds between logging failed attempts
+min_confidence_to_log = 150  # Only log failed attempts with confidence below this threshold
 
 # Initialize Arduino manager
 arduino_manager = None
@@ -222,10 +228,13 @@ def generate_frames():
             if not camera.isOpened():
                 print("❌ Failed to open camera")
                 return
+            # Optimize camera settings for better performance
             camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
             camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-            camera.set(cv2.CAP_PROP_FPS, 15)
-            camera.set(cv2.CAP_PROP_AUTOFOCUS, 1)
+            camera.set(cv2.CAP_PROP_FPS, 30)  # Increase FPS
+            camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # Minimize buffer to reduce latency
+            camera.set(cv2.CAP_PROP_AUTOFOCUS, 0)  # Disable autofocus for faster frames
+            camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))  # Use MJPG format for better performance
 
         while True:
             success, frame = camera.read()
@@ -265,14 +274,18 @@ def generate_frames():
                        b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
                 continue
 
+            # Only perform face detection at specified intervals
             if (current_time - last_face_check) >= face_check_interval:
                 last_face_check = current_time
-                enhanced = enhance_image(frame)
+                # Use fast mode for real-time processing
+                enhanced = enhance_image(frame, fast_mode=True)
+
+                # Optimize face detection parameters
                 faces = face_classifier.detectMultiScale(
                     enhanced,
-                    scaleFactor=1.05,
-                    minNeighbors=3,
-                    minSize=(30, 30),
+                    scaleFactor=1.1,  # Slightly faster detection
+                    minNeighbors=4,   # More reliable detection
+                    minSize=(50, 50), # Larger minimum face size for better performance
                     flags=cv2.CASCADE_SCALE_IMAGE
                 )
 
@@ -280,14 +293,20 @@ def generate_frames():
                     faces = sorted(faces, key=lambda x: x[2] * x[3], reverse=True)
                     x, y, w, h = faces[0]
                     cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                    # Extract and prepare face for recognition
                     face = enhanced[y:y+h, x:x+w]
                     face = cv2.resize(face, (200, 200))
 
+                    # Apply histogram equalization for better recognition
+                    face = cv2.equalizeHist(face)
+
                     try:
+                        # Perform face recognition
                         label, confidence = model.predict(face)
                         name = label_map.get(label, "Unknown")
 
-                        if confidence < 105 and name != "Unknown":
+                        # Adjust confidence threshold for better accuracy
+                        if confidence < 100 and name != "Unknown":
                             cv2.putText(frame, f"Welcome {name}", (x, y-10),
                                         cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
 
@@ -301,6 +320,14 @@ def generate_frames():
                                     print("✅ Door unlocked successfully")
                                     # Log successful access
                                     log_access(name, True, "Face Recognition")
+
+                                    # Play welcome voice message
+                                    try:
+                                        voice = get_voice_module()
+                                        voice.welcome_user(name)
+                                    except Exception as e:
+                                        print(f"⚠️ Voice module error: {e}")
+
                                     # Send Telegram notification
                                     try:
                                         notifier = get_notifier()
@@ -310,8 +337,30 @@ def generate_frames():
                         else:
                             cv2.putText(frame, "Access Denied", (x, y-10),
                                         cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
-                            # Log failed access attempt
-                            log_access(name if name != "Unknown" else "Unknown Person", False, "Face Recognition")
+
+                            # Only log failed access attempts that meet certain criteria
+                            global last_failed_log_time, failed_log_cooldown, min_confidence_to_log
+                            current_time = time.time()
+
+                            # Log only if:
+                            # 1. The confidence is below our threshold (likely a real person, not random objects)
+                            # 2. We haven't logged a failure recently (cooldown period)
+                            # 3. The name is not completely unknown (some recognition happened)
+                            if (confidence < min_confidence_to_log and
+                                current_time - last_failed_log_time > failed_log_cooldown and
+                                (name != "Unknown" or confidence < 120)):
+
+                                # Log the failed access attempt
+                                log_access(name if name != "Unknown" else "Unknown Person", False, "Face Recognition")
+                                last_failed_log_time = current_time
+                                print(f"🔴 Access denied logged: {name} (Confidence: {confidence})")
+
+                                # Play access denied voice message
+                                try:
+                                    voice = get_voice_module()
+                                    voice.access_denied()
+                                except Exception as e:
+                                    print(f"⚠️ Voice module error: {e}")
                     except Exception as e:
                         cv2.putText(frame, "Recognition Error", (30, 50),
                                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
@@ -324,6 +373,14 @@ def generate_frames():
                         door_status = "Locked"
                         last_door_action = "lock"
                         print("🔒 Door locked successfully")
+
+                        # Play door locked voice message
+                        try:
+                            voice = get_voice_module()
+                            voice.door_locked()
+                        except Exception as e:
+                            print(f"⚠️ Voice module error: {e}")
+
                         # Send Telegram notification for auto-lock
                         try:
                             notifier = get_notifier()
@@ -331,7 +388,9 @@ def generate_frames():
                         except Exception as e:
                             print(f"⚠️ Telegram notification error: {e}")
 
-            _, buffer = cv2.imencode('.jpg', frame)
+            # Optimize JPEG encoding for streaming
+            encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 85]  # Lower quality for faster transmission
+            _, buffer = cv2.imencode('.jpg', frame, encode_param)
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
 
@@ -378,13 +437,17 @@ def add_user_process():
         os.makedirs(save_path, exist_ok=True)
 
         if camera is None:
-            camera = cv2.VideoCapture(camera_index)
+            camera = cv2.VideoCapture(camera_index, cv2.CAP_DSHOW)
             if not camera.isOpened():
                 return jsonify({'success': False, 'message': 'Failed to initialize camera'}), 500
 
+            # Use optimized camera settings for user registration
             camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
             camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-            camera.set(cv2.CAP_PROP_FPS, 15)
+            camera.set(cv2.CAP_PROP_FPS, 30)
+            camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+            camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+            # Keep autofocus enabled for user registration to get clear face images
             camera.set(cv2.CAP_PROP_AUTOFOCUS, 1)
 
         count, max_images, failed = 0, 100, 0
@@ -394,8 +457,9 @@ def add_user_process():
                 failed += 1
                 continue
 
-            enhanced = enhance_image(frame)
-            faces = face_classifier.detectMultiScale(enhanced, scaleFactor=1.05, minNeighbors=3, minSize=(30, 30))
+            # Use full enhancement mode for better quality during user registration
+            enhanced = enhance_image(frame, fast_mode=False)
+            faces = face_classifier.detectMultiScale(enhanced, scaleFactor=1.05, minNeighbors=4, minSize=(50, 50))
 
             if len(faces) == 0:
                 failed += 1
@@ -453,6 +517,16 @@ def list_users_for_deletion():
     except Exception as e:
         print(f"Error loading users: {e}")
     return render_template('delete_user.html', users=users)
+
+@app.route('/view_user_images/<username>')
+def view_user_images(username):
+    """This feature has been removed."""
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+
+    # Redirect to the user management page with a message
+    flash("The feature to view user images has been removed.", "info")
+    return redirect(url_for('list_users_for_deletion'))
 
 @app.route('/delete_user/<username>', methods=['GET', 'POST'])
 def delete_user(username):
@@ -820,6 +894,14 @@ def unlockdoor():
             # Log manual unlock
             user = "Admin" if session.get('admin_logged_in') else "Unknown User"
             log_access(user, True, "Manual Unlock")
+
+            # Play welcome voice message
+            try:
+                voice = get_voice_module()
+                voice.welcome_user(user)
+            except Exception as e:
+                print(f"⚠️ Voice module error: {e}")
+
             # Send Telegram notification
             try:
                 notifier = get_notifier()
@@ -887,6 +969,14 @@ def api_unlock():
             last_recognition_time = time.time()
             # Log successful API unlock
             log_access("Admin", True, "API Unlock")
+
+            # Play door unlocked voice message
+            try:
+                voice = get_voice_module()
+                voice.welcome_user("Admin")
+            except Exception as e:
+                print(f"⚠️ Voice module error: {e}")
+
             # Send Telegram notification
             try:
                 notifier = get_notifier()
@@ -926,6 +1016,14 @@ def api_lock():
             # Log successful API lock
             log_access("Admin", True, "API Lock")
             print("✅ Door locked successfully")
+
+            # Play door locked voice message
+            try:
+                voice = get_voice_module()
+                voice.door_locked()
+            except Exception as e:
+                print(f"⚠️ Voice module error: {e}")
+
             # Send Telegram notification
             try:
                 notifier = get_notifier()
@@ -1093,6 +1191,39 @@ def run_batch_file():
         print(f"Error running batch file: {str(e)}")
         return redirect(url_for('access_logs'))
 
+@app.route('/clean_failed_logs')
+def clean_failed_logs_route():
+    """Clean up old failed access logs."""
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+
+    try:
+        # Clean logs - keep only 50 failed entries and remove entries older than 3 days
+        result = clean_failed_access_logs(max_age_days=3, max_failed_entries=50)
+
+        if result:
+            # Log this action
+            log_access("Admin", True, "Cleaned Failed Access Logs")
+            return redirect(url_for('access_logs', success_message="Failed access logs cleaned successfully"))
+        else:
+            return redirect(url_for('access_logs', error_message="Failed to clean access logs"))
+    except Exception as e:
+        print(f"Error cleaning failed logs: {str(e)}")
+        return redirect(url_for('access_logs', error_message=f"Error: {str(e)}"))
+
+# Function to clean logs periodically
+def clean_logs_periodically():
+    """Clean up old failed access logs periodically to prevent log file growth."""
+    while True:
+        try:
+            # Clean logs - keep only 50 failed entries and remove entries older than 3 days
+            clean_failed_access_logs(max_age_days=3, max_failed_entries=50)
+            # Sleep for 6 hours before cleaning again
+            time.sleep(6 * 60 * 60)
+        except Exception as e:
+            print(f"Error in log cleaning thread: {e}")
+            time.sleep(60)  # Wait a minute before trying again
+
 if __name__ == '__main__':
     try:
         # Ensure user image directory exists
@@ -1100,6 +1231,15 @@ if __name__ == '__main__':
 
         # Create model_backups directory if it doesn't exist
         os.makedirs("model_backups", exist_ok=True)
+
+        # Clean logs on startup
+        print("🗑️ Cleaning old access logs...")
+        clean_failed_access_logs(max_age_days=3, max_failed_entries=50)
+
+        # Start log cleaning thread
+        log_cleaning_thread = threading.Thread(target=clean_logs_periodically, daemon=True)
+        log_cleaning_thread.start()
+        print("🗑️ Log cleaning thread started")
 
         # Load the model (the enhanced load_model function will handle missing files)
         model, label_map = load_model()

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error - Face Recognition Door Lock</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="{{ url_for('static', filename='theme.js') }}"></script>
+    <style>
+        .error-container {
+            text-align: center;
+            padding: 40px;
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+        
+        .error-icon {
+            font-size: 60px;
+            color: #e74c3c;
+            margin-bottom: 20px;
+        }
+        
+        .error-message {
+            font-size: 18px;
+            margin-bottom: 30px;
+            color: var(--text-color);
+        }
+        
+        .error-actions {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-exclamation-triangle"></i> Error</h1>
+            <div class="theme-toggle"><i class="fas fa-moon"></i> Dark Mode</div>
+            <div class="header-buttons">
+                <a href="{{ url_for('admin_dashboard') }}" class="btn secondary"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                <a href="{{ url_for('index') }}" class="btn primary"><i class="fas fa-home"></i> Homepage</a>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div class="error-container">
+                <div class="error-icon">
+                    <i class="fas fa-exclamation-circle"></i>
+                </div>
+                <div class="error-message">
+                    {{ error }}
+                </div>
+                <div class="error-actions">
+                    <a href="javascript:history.back()" class="btn secondary">
+                        <i class="fas fa-arrow-left"></i> Go Back
+                    </a>
+                    <a href="{{ url_for('admin_dashboard') }}" class="btn primary">
+                        <i class="fas fa-tachometer-alt"></i> Go to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p><i class="fas fa-copyright"></i> Face Recognition Door Lock System 2025</p>
+    </footer>
+</body>
+</html>

@@ -215,3 +215,54 @@ def clear_logs_directly():
     except Exception as e:
         print(f"Error in clear_logs_directly: {e}")
         return False
+
+def clean_failed_access_logs(max_age_days=7, max_failed_entries=100):
+    """Clean up old failed access logs to prevent the log file from growing too large.
+
+    Args:
+        max_age_days (int): Remove failed access logs older than this many days
+        max_failed_entries (int): Maximum number of failed access logs to keep
+
+    Returns:
+        bool: True if cleaning was successful, False otherwise
+    """
+    try:
+        with log_lock:
+            logs = initialize_logs()
+
+            # Get current time
+            current_time = time.time()
+            cutoff_time = current_time - (max_age_days * 24 * 60 * 60)
+
+            # Separate successful and failed logs
+            successful_logs = [log for log in logs if log["access_granted"]]
+            failed_logs = [log for log in logs if not log["access_granted"]]
+
+            # Remove old failed logs
+            cleaned_failed_logs = [log for log in failed_logs if log["timestamp"] > cutoff_time]
+
+            # If we still have too many failed logs, keep only the most recent ones
+            if len(cleaned_failed_logs) > max_failed_entries:
+                # Sort by timestamp (newest first)
+                cleaned_failed_logs.sort(key=lambda x: x["timestamp"], reverse=True)
+                # Keep only the most recent entries
+                cleaned_failed_logs = cleaned_failed_logs[:max_failed_entries]
+
+            # Combine successful logs with cleaned failed logs
+            cleaned_logs = successful_logs + cleaned_failed_logs
+
+            # Sort by timestamp (newest first)
+            cleaned_logs.sort(key=lambda x: x["timestamp"], reverse=True)
+
+            # Save the cleaned logs
+            removed_count = len(logs) - len(cleaned_logs)
+            if removed_count > 0:
+                print(f"Removed {removed_count} old failed access logs")
+                save_logs(cleaned_logs)
+                return True
+            else:
+                print("No old failed access logs to remove")
+                return True
+    except Exception as e:
+        print(f"Error cleaning failed access logs: {e}")
+        return False

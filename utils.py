@@ -138,43 +138,68 @@ class ArduinoManager:
                 return False
         return False
 
-def enhance_image(frame):
+# Pre-create CLAHE object and kernel for better performance
+_clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+_sharpening_kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
+
+def enhance_image(frame, fast_mode=True):
+    """Enhance image for face detection with optional fast mode"""
     if len(frame.shape) > 2:
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     else:
         gray = frame.copy()
 
-    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
-    enhanced = clahe.apply(gray)
-    enhanced = cv2.bilateralFilter(enhanced, 9, 75, 75)
-    kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
-    enhanced = cv2.filter2D(enhanced, -1, kernel)
+    # Fast mode for real-time processing
+    if fast_mode:
+        # Apply only essential enhancements
+        enhanced = _clahe.apply(gray)
+        # Skip bilateral filter in fast mode as it's computationally expensive
+        return enhanced
+
+    # Full enhancement for training and user addition
+    enhanced = _clahe.apply(gray)
+    enhanced = cv2.bilateralFilter(enhanced, 5, 50, 50)  # Reduced parameters
+    enhanced = cv2.filter2D(enhanced, -1, _sharpening_kernel)
 
     return enhanced
 
 def recognize_face(frame, face_classifier=None, model=None, label_map=None):
+    """Optimized face recognition function"""
     if not all([face_classifier, model, label_map]):
         print("⚠️ Missing required components for face recognition")
         return False, "Error"
 
     try:
-        enhanced = enhance_image(frame)
-        faces = face_classifier.detectMultiScale(enhanced, scaleFactor=1.05, minNeighbors=4, minSize=(30, 30))
+        # Use fast mode for real-time recognition
+        enhanced = enhance_image(frame, fast_mode=True)
+
+        # Optimized face detection parameters
+        faces = face_classifier.detectMultiScale(
+            enhanced,
+            scaleFactor=1.1,      # Faster detection
+            minNeighbors=4,      # More reliable detection
+            minSize=(50, 50),    # Larger minimum face size
+            flags=cv2.CASCADE_SCALE_IMAGE
+        )
+
         if len(faces) == 0:
-            print("⚠️ No face detected in frame")
             return False, "No Face"
 
+        # Get the largest face
         faces = sorted(faces, key=lambda x: x[2] * x[3], reverse=True)
         x, y, w, h = faces[0]
+
+        # Process face for recognition
         face = enhanced[y:y+h, x:x+w]
         face = cv2.resize(face, (200, 200))
-        face = cv2.equalizeHist(face)
-        face = cv2.normalize(face, None, 0, 255, cv2.NORM_MINMAX)
+        face = cv2.equalizeHist(face)  # Histogram equalization improves recognition
 
+        # Perform recognition
         label, confidence = model.predict(face)
         name = label_map.get(label, "Unknown")
 
-        threshold = 105
+        # Adjusted threshold for better accuracy
+        threshold = 100
         if confidence < threshold:
             print(f"🟢 Face recognized: {name} | Confidence: {confidence}")
             return True, name

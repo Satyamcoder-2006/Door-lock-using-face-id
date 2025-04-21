@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Delete User - Face Recognition Door Lock</title>
+    <title>Manage Users - Face Recognition Door Lock</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="{{ url_for('static', filename='theme.js') }}"></script>
     <style>
         .overlay {
@@ -51,6 +52,224 @@
             background-color: #f8f9fa;
             transition: all 0.3s ease;
         }
+
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-info {
+            background-color: rgba(52, 152, 219, 0.1);
+            border: 1px solid rgba(52, 152, 219, 0.3);
+            color: #3498db;
+        }
+
+        .alert-success {
+            background-color: rgba(46, 204, 113, 0.1);
+            border: 1px solid rgba(46, 204, 113, 0.3);
+            color: #2ecc71;
+        }
+
+        .alert-warning {
+            background-color: rgba(241, 196, 15, 0.1);
+            border: 1px solid rgba(241, 196, 15, 0.3);
+            color: #f1c40f;
+        }
+
+        .alert-danger {
+            background-color: rgba(231, 76, 60, 0.1);
+            border: 1px solid rgba(231, 76, 60, 0.3);
+            color: #e74c3c;
+        }
+
+        /* Enhanced User Management Styles */
+        .user-management {
+            background-color: var(--card-bg);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: var(--shadow-md);
+            margin-bottom: 40px;
+            transition: all 0.3s ease;
+        }
+
+        .user-management-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .user-management-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-color);
+        }
+
+        .user-count {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .user-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .user-card {
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            background-color: var(--card-bg);
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-sm);
+            position: relative;
+        }
+
+        .user-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .user-card-header {
+            padding: 15px;
+            background-color: rgba(74, 108, 247, 0.05);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .user-info h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .user-meta {
+            font-size: 0.85rem;
+            color: var(--text-color);
+            opacity: 0.7;
+            margin-top: 3px;
+        }
+
+        .user-card-body {
+            padding: 15px;
+        }
+
+        .user-stats {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .stat-item {
+            flex: 1;
+            background-color: rgba(74, 108, 247, 0.05);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-color);
+            opacity: 0.7;
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn.delete-btn {
+            background-color: var(--danger-color);
+            color: white;
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .btn.delete-btn:hover {
+            background-color: #e03131;
+            transform: translateY(-2px);
+        }
+
+        .btn.delete-btn:active {
+            transform: translateY(0);
+        }
+
+        .no-users {
+            text-align: center;
+            padding: 40px 20px;
+            background-color: rgba(74, 108, 247, 0.05);
+            border-radius: 12px;
+            color: var(--text-color);
+            font-size: 1.1rem;
+        }
+
+        .no-users i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            .user-list {
+                grid-template-columns: 1fr;
+            }
+
+            .user-management-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -62,7 +281,7 @@
 
     <div class="container">
         <header>
-            <h1><i class="fas fa-user-minus"></i> Delete User</h1>
+            <h1><i class="fas fa-users-gear"></i> Manage Users</h1>
             <div class="theme-toggle"><i class="fas fa-moon"></i> Dark Mode</div>
             <div class="header-buttons">
                 <a href="{{ url_for('admin_dashboard') }}" class="btn secondary"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
@@ -71,28 +290,67 @@
         </header>
 
         <div class="main-content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            <i class="fas fa-info-circle"></i> {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
             <div class="user-management">
-                <h2><i class="fas fa-users"></i> Registered Users</h2>
+                <div class="user-management-header">
+                    <h2><i class="fas fa-users"></i> Registered Users <span class="user-count">{{ users|length }}</span></h2>
+                    <div class="header-actions">
+                        <a href="{{ url_for('add_user_form') }}" class="btn primary"><i class="fas fa-user-plus"></i> Add New User</a>
+                    </div>
+                </div>
+
                 {% if users %}
                     <div class="user-list">
                         {% for user in users %}
                             <div class="user-card">
-                                <div class="user-info">
-                                    <h3><i class="fas fa-user"></i> {{ user.name }}</h3>
+                                <div class="user-card-header">
+                                    <div class="user-avatar">
+                                        {{ user.name[0]|upper }}
+                                    </div>
+                                    <div class="user-info">
+                                        <h3>{{ user.name }}</h3>
+                                        <div class="user-meta">
+                                            <i class="fas fa-shield-alt"></i> Authorized User
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="user-actions">
-                                    <button class="btn danger" onclick="deleteUser('{{ user.name }}')" id="deleteBtn-{{ user.name }}">
-                                        <i class="fas fa-trash-alt"></i> Delete
-                                    </button>
+                                <div class="user-card-body">
+                                    <div class="user-stats">
+                                        <div class="stat-item">
+                                            <div class="stat-value">{{ user.images|default(100) }}</div>
+                                            <div class="stat-label">Face Images</div>
+                                        </div>
+                                        <div class="stat-item">
+                                            <div class="stat-value">{{ user.last_access|default('2 days ago') }}</div>
+                                            <div class="stat-label">Last Access</div>
+                                        </div>
+                                    </div>
+                                    <div class="user-actions">
+                                        <button class="btn delete-btn" onclick="deleteUser('{{ user.name }}')" id="deleteBtn-{{ user.name }}">
+                                            <i class="fas fa-trash-alt"></i> Delete User
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         {% endfor %}
                     </div>
                 {% else %}
-                    <p class="no-users">
+                    <div class="no-users">
                         <i class="fas fa-user-slash"></i>
-                        No users registered yet.
-                    </p>
+                        <p>No users registered yet.</p>
+                        <a href="{{ url_for('add_user_form') }}" class="btn primary" style="margin-top: 15px;">
+                            <i class="fas fa-user-plus"></i> Add Your First User
+                        </a>
+                    </div>
                 {% endif %}
             </div>
         </div>
@@ -104,7 +362,56 @@
 
     <script>
         function deleteUser(username) {
-            if (confirm(`Are you sure you want to delete user ${username}? This action cannot be undone.\n\nNote: For security reasons, the door will be locked immediately.`)) {
+            // Create a more stylish confirmation dialog
+            const confirmDialog = document.createElement('div');
+            confirmDialog.className = 'overlay';
+            confirmDialog.style.display = 'flex';
+            confirmDialog.style.flexDirection = 'column';
+            confirmDialog.style.alignItems = 'center';
+            confirmDialog.style.justifyContent = 'center';
+
+            const dialogContent = document.createElement('div');
+            dialogContent.style.backgroundColor = 'var(--card-bg)';
+            dialogContent.style.borderRadius = '12px';
+            dialogContent.style.padding = '25px';
+            dialogContent.style.width = '90%';
+            dialogContent.style.maxWidth = '450px';
+            dialogContent.style.boxShadow = 'var(--shadow-lg)';
+            dialogContent.style.textAlign = 'center';
+
+            dialogContent.innerHTML = `
+                <div style="font-size: 3rem; color: var(--danger-color); margin-bottom: 15px;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h2 style="margin-bottom: 15px; color: var(--text-color);">Delete User</h2>
+                <p style="margin-bottom: 25px; color: var(--text-color); opacity: 0.8;">
+                    Are you sure you want to delete user <strong>${username}</strong>? This action cannot be undone.
+                </p>
+                <p style="margin-bottom: 25px; color: var(--danger-color); font-size: 0.9rem;">
+                    <i class="fas fa-lock"></i> For security reasons, the door will be locked immediately.
+                </p>
+                <div style="display: flex; gap: 15px; justify-content: center;">
+                    <button id="cancelDelete" class="btn secondary" style="padding: 10px 20px;">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button id="confirmDelete" class="btn danger" style="padding: 10px 20px;">
+                        <i class="fas fa-trash-alt"></i> Delete User
+                    </button>
+                </div>
+            `;
+
+            confirmDialog.appendChild(dialogContent);
+            document.body.appendChild(confirmDialog);
+
+            // Handle cancel button
+            document.getElementById('cancelDelete').addEventListener('click', function() {
+                document.body.removeChild(confirmDialog);
+            });
+
+            // Handle confirm button
+            document.getElementById('confirmDelete').addEventListener('click', function() {
+                document.body.removeChild(confirmDialog);
+
                 const deleteBtn = document.getElementById(`deleteBtn-${username}`);
                 const originalText = deleteBtn.innerHTML;
                 deleteBtn.disabled = true;
@@ -113,15 +420,36 @@
                 // Show the loading overlay
                 const overlay = document.getElementById('loadingOverlay');
                 const overlayMessage = document.getElementById('overlayMessage');
-                overlayMessage.innerHTML = `<i class="fas fa-lock"></i> Locking door and deleting user ${username}.<br>Retraining model. Please wait...`;
+                overlayMessage.innerHTML = `
+                    <div style="font-size: 2rem; margin-bottom: 15px; color: var(--primary-color);">
+                        <i class="fas fa-cog fa-spin"></i>
+                    </div>
+                    <h3 style="margin-bottom: 10px;">Processing</h3>
+                    <p style="margin-bottom: 5px;"><i class="fas fa-lock"></i> Locking door</p>
+                    <p style="margin-bottom: 5px;"><i class="fas fa-user-minus"></i> Removing user ${username}</p>
+                    <p><i class="fas fa-brain"></i> Retraining recognition model</p>
+                `;
                 overlay.style.display = 'flex';
 
                 // Add status message below the button as well
-                const statusDiv = document.createElement('div');
-                statusDiv.className = 'status-message';
-                statusDiv.innerHTML = '<i class="fas fa-lock"></i> <i class="fas fa-info-circle"></i> Locking door, deleting user and retraining model. Please wait...';
-                statusDiv.style.color = '#3498db';
-                deleteBtn.parentNode.appendChild(statusDiv);
+                const userCard = deleteBtn.closest('.user-card');
+                userCard.style.position = 'relative';
+
+                const processingOverlay = document.createElement('div');
+                processingOverlay.style.position = 'absolute';
+                processingOverlay.style.top = '0';
+                processingOverlay.style.left = '0';
+                processingOverlay.style.width = '100%';
+                processingOverlay.style.height = '100%';
+                processingOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+                processingOverlay.style.borderRadius = '12px';
+                processingOverlay.style.display = 'flex';
+                processingOverlay.style.alignItems = 'center';
+                processingOverlay.style.justifyContent = 'center';
+                processingOverlay.style.color = 'white';
+                processingOverlay.style.fontSize = '1rem';
+                processingOverlay.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                userCard.appendChild(processingOverlay);
 
                 fetch(`/delete_user/${username}`, {
                     method: 'POST',
@@ -140,11 +468,18 @@
                 .then(data => {
                     if (data.success) {
                         // Update overlay message
-                        overlayMessage.innerHTML = `<i class="fas fa-check-circle"></i> ${data.message}`;
+                        overlayMessage.innerHTML = `
+                            <div style="font-size: 3rem; color: var(--success-color); margin-bottom: 20px;">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <h3 style="margin-bottom: 15px;">Success!</h3>
+                            <p>${data.message}</p>
+                        `;
 
-                        // Update status message
-                        statusDiv.innerHTML = `<i class="fas fa-check-circle"></i> ${data.message}`;
-                        statusDiv.style.color = '#2ecc71';
+                        // Add a nice fade-out animation to the user card
+                        userCard.style.transition = 'all 0.5s ease';
+                        userCard.style.opacity = '0';
+                        userCard.style.transform = 'scale(0.8)';
 
                         // Hide overlay after a delay
                         setTimeout(() => {
@@ -159,11 +494,16 @@
                     console.error('Error:', error);
 
                     // Update overlay message
-                    overlayMessage.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Error: ${error.message}`;
+                    overlayMessage.innerHTML = `
+                        <div style="font-size: 3rem; color: var(--danger-color); margin-bottom: 20px;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <h3 style="margin-bottom: 15px;">Error</h3>
+                        <p>${error.message}</p>
+                    `;
 
-                    // Update status message
-                    statusDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${error.message}`;
-                    statusDiv.style.color = '#e74c3c';
+                    // Remove the processing overlay
+                    userCard.removeChild(processingOverlay);
 
                     // Hide overlay after a delay
                     setTimeout(() => {
@@ -173,7 +513,7 @@
                     deleteBtn.disabled = false;
                     deleteBtn.innerHTML = originalText;
                 });
-            }
+            });
         }
     </script>
 </body>
