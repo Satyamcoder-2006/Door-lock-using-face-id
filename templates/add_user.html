@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add New User - Face Recognition Door Lock</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="{{ url_for('static', filename='theme.js') }}"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Add New User</h1>
+            <div class="theme-toggle"><i class="fas fa-moon"></i> Dark Mode</div>
+            <div class="header-buttons">
+                <a href="{{ url_for('admin_dashboard') }}" class="btn secondary"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+                <a href="{{ url_for('index') }}" class="btn primary"><i class="fas fa-home"></i> Back to Homepage</a>
+            </div>
+        </header>
+
+        <div class="add-user-content">
+            <div class="form-container">
+                <form id="addUserForm">
+                    <div class="form-group">
+                        <label for="username">User Name:</label>
+                        <input type="text" id="username" name="username" required>
+                    </div>
+
+                    <div class="form-instructions">
+                        <h3>Instructions:</h3>
+                        <ol>
+                            <li>Enter the user's name above</li>
+                            <li>Click "Start Capturing" to begin</li>
+                            <li>Look at the camera and slowly move your head to capture different angles</li>
+                            <li>The system will automatically capture 100 face images</li>
+                            <li>Wait for the process to complete</li>
+                        </ol>
+                    </div>
+
+                    <button type="button" id="startCapturing" class="btn primary">Start Capturing</button>
+                </form>
+            </div>
+
+            <div class="camera-container">
+                <h2>Camera Preview</h2>
+                <img src="{{ url_for('video_feed') }}" alt="Camera Feed" id="cameraFeed">
+                <div id="captureProgress" class="progress-container">
+                    <div class="progress-bar" style="width: 0%"></div>
+                    <span class="progress-text">0/100 images</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="captureStatus" class="capture-status">
+            <p>Ready to capture</p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('startCapturing').addEventListener('click', function () {
+            const usernameInput = document.getElementById('username');
+            const username = usernameInput.value.trim();
+            const button = document.getElementById('startCapturing');
+            const statusDiv = document.getElementById('captureStatus');
+
+            if (!username) {
+                alert('Please enter a username');
+                return;
+            }
+
+            // Disable input and button
+            usernameInput.disabled = true;
+            button.disabled = true;
+            statusDiv.innerHTML = '<p>Capturing in progress... Please look at the camera and move slowly</p>';
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '{{ url_for("add_user_process") }}', true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+            xhr.onload = function () {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (xhr.status === 200) {
+                        statusDiv.innerHTML = `
+                            <p class="success">${response.message}</p>
+                            <a href="{{ url_for('index') }}" class="btn success">Return to Dashboard</a>
+                        `;
+                        document.querySelector('.progress-bar').style.width = '100%';
+                        document.querySelector('.progress-text').textContent = `${response.count}/100 images`;
+                    } else {
+                        throw new Error(response.message || 'Unknown error');
+                    }
+                } catch (err) {
+                    statusDiv.innerHTML = `
+                        <p class="error">Error: ${err.message}</p>
+                        <button onclick="location.reload()" class="btn danger">Try Again</button>
+                    `;
+                }
+            };
+
+            xhr.onerror = function () {
+                statusDiv.innerHTML = `
+                    <p class="error">Network error occurred</p>
+                    <button onclick="location.reload()" class="btn danger">Try Again</button>
+                `;
+            };
+
+            // Simulate progress
+            let progress = 0;
+            const interval = setInterval(() => {
+                if (progress <= 100) {
+                    document.querySelector('.progress-bar').style.width = `${progress}%`;
+                    document.querySelector('.progress-text').textContent = `${progress}/100 images`;
+                    progress++;
+                }
+                if (progress >= 100 || xhr.readyState === 4) {
+                    clearInterval(interval);
+                }
+            }, 300);
+
+            xhr.send(`username=${encodeURIComponent(username)}`);
+        });
+    </script>
+</body>
+</html>

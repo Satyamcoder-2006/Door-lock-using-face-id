@@ -1,0 +1,31 @@
+2025-04-15 07:58:12,855 - INFO - Starting face recognition training...
+2025-04-15 07:58:12,857 - INFO - Looking for user images in: C:\Users\satya\OneDrive\Desktop\IOTPROJECTFINAL\userimage
+2025-04-15 07:58:12,940 - INFO - Found 1 user folders
+2025-04-15 07:58:13,036 - INFO - Processing user: User_satyam
+2025-04-15 07:58:16,952 - INFO - Successfully processed 100 images for satyam (generated 600 training samples)
+2025-04-15 07:58:16,953 - INFO - Training model with 600 faces from 1 users...
+2025-04-15 07:59:15,940 - INFO - Model saved successfully to C:\Users\satya\OneDrive\Desktop\IOTPROJECTFINAL\face_recognizer_model.xml
+2025-04-15 07:59:15,941 - INFO - Model file size: 557.17 MB
+2025-04-15 07:59:15,942 - INFO - Label map saved successfully to C:\Users\satya\OneDrive\Desktop\IOTPROJECTFINAL\label_map.pkl
+2025-04-15 07:59:15,942 - INFO - 
+Training complete! Summary:
+2025-04-15 07:59:15,942 - INFO - - Total training samples: 600
+2025-04-15 07:59:16,149 - INFO - 127.0.0.1 - - [15/Apr/2025 07:59:16] "[35m[1mPOST /add_user_process HTTP/1.1[0m" 500 -
+2025-04-15 07:59:55,340 - INFO - 127.0.0.1 - - [15/Apr/2025 07:59:55] "GET /add_user HTTP/1.1" 200 -
+2025-04-15 07:59:55,556 - INFO - 127.0.0.1 - - [15/Apr/2025 07:59:55] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2025-04-15 07:59:55,557 - INFO - 127.0.0.1 - - [15/Apr/2025 07:59:55] "GET /video_feed HTTP/1.1" 200 -
+2025-04-15 08:01:54,101 - INFO - Starting face recognition training...
+2025-04-15 08:01:54,437 - INFO - Created backup at model_backups\face_recognizer_model_20250415_080154.xml
+2025-04-15 08:01:54,439 - INFO - Created backup at model_backups\label_map_20250415_080154.pkl
+2025-04-15 08:01:54,440 - INFO - Looking for user images in: C:\Users\satya\OneDrive\Desktop\IOTPROJECTFINAL\userimage
+2025-04-15 08:01:54,477 - INFO - Found 1 user folders
+2025-04-15 08:01:54,481 - INFO - Processing user: User_satyam
+2025-04-15 08:01:57,050 - INFO - Successfully processed 100 images for satyam (generated 600 training samples)
+2025-04-15 08:01:57,051 - INFO - Training model with 600 faces from 1 users...
+2025-04-15 08:02:45,064 - INFO - Model saved successfully to C:\Users\satya\OneDrive\Desktop\IOTPROJECTFINAL\face_recognizer_model.xml
+2025-04-15 08:02:45,064 - INFO - Model file size: 557.54 MB
+2025-04-15 08:02:45,065 - INFO - Label map saved successfully to C:\Users\satya\OneDrive\Desktop\IOTPROJECTFINAL\label_map.pkl
+2025-04-15 08:02:45,065 - INFO - 
+Training complete! Summary:
+2025-04-15 08:02:45,066 - INFO - - Total training samples: 600
+2025-04-15 08:02:45,421 - INFO - 127.0.0.1 - - [15/Apr/2025 08:02:45] "[35m[1mPOST /add_user_process HTTP/1.1[0m" 500 -

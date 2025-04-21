@@ -1,0 +1,93 @@
+/* Theme variables for light/dark mode */
+:root {
+    /* Light mode (default) */
+    --bg-color: #f1f5f9;
+    --text-color: #334155;
+    --card-bg: #ffffff;
+    --header-bg: linear-gradient(135deg, #1e293b, #0f172a);
+    --header-text: #ffffff;
+    --border-color: #e2e8f0;
+    --primary-color: #4a6cf7;
+    --primary-hover: #3a5ce4;
+    --success-color: #10b981;
+    --danger-color: #ef4444;
+    --info-bg: #f8fafc;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    --user-card-text: #1e293b;
+    --info-text-color: #334155;
+    --link-color: #4a6cf7;
+}
+
+/* Dark mode */
+body.dark-mode {
+    --bg-color: #121212;
+    --text-color: #e2e8f0;
+    --card-bg: #1e1e1e;
+    --header-bg: linear-gradient(135deg, #0f172a, #020617);
+    --header-text: #ffffff;
+    --border-color: #2d3748;
+    --primary-color: #4a6cf7;
+    --primary-hover: #3a5ce4;
+    --success-color: #10b981;
+    --danger-color: #ef4444;
+    --info-bg: #1a1a1a;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5);
+    --user-card-text: #ffffff;
+    --info-text-color: #b4c6ef;
+    --link-color: #6d8dff;
+}
+
+/* Theme toggle button */
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 8px 16px;
+    border-radius: 20px;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--header-text);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.theme-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.theme-toggle i {
+    margin-right: 6px;
+}
+
+/* Additional dark mode styles */
+body.dark-mode .info-text a {
+    color: var(--link-color);
+    text-decoration: none;
+}
+
+body.dark-mode .info-text a:hover {
+    text-decoration: underline;
+}
+
+/* Additional light mode styles */
+body.light-mode .info-text a {
+    color: var(--link-color);
+    text-decoration: none;
+}
+
+body.light-mode .info-text a:hover {
+    text-decoration: underline;
+}
+
+/* User card icon styles */
+body.dark-mode .user-info i {
+    color: #6d8dff;
+}
+
+body.dark-mode .user-card {
+    border-color: #2d3748;
+}

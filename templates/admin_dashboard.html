@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FaceLock Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="{{ url_for('static', filename='theme.js') }}"></script>
+    <style>
+        :root {
+            --bg-color: #f5f5f5;
+            --text-color: #222;
+            --card-color: #fff;
+            --btn-outline: #27ae60;
+            --btn-info: #2980b9;
+        }
+
+        body.dark-mode {
+            --bg-color: #181a1b;
+            --text-color: #fff;
+            --card-color: #2a2d2e;
+            --btn-outline: #2ecc71;
+            --btn-info: #3498db;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .navbar {
+            background-color: var(--card-color);
+        }
+
+        /* Ensure navbar text is visible in both light and dark modes */
+        .navbar-brand, .navbar-nav .nav-link {
+            color: var(--text-color) !important;
+        }
+
+        .navbar-brand:hover, .navbar-nav .nav-link:hover {
+            color: var(--btn-outline) !important;
+        }
+
+        .card {
+            background-color: var(--card-color);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 25px;
+            color: var(--text-color);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.6s forwards;
+            height: 100%;
+            border: none;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .btn-outline-success {
+            border-color: var(--btn-outline);
+            color: var(--btn-outline);
+            font-size: 1.1rem;
+            padding: 10px 20px;
+        }
+
+        .btn-outline-success:hover {
+            background-color: var(--btn-outline);
+            color: #fff;
+        }
+
+        .theme-toggle {
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 10px 20px;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            font-size: 1.1rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn i {
+            margin-right: 8px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .btn-info {
+            background-color: #2196F3;
+            border-color: #2196F3;
+            color: #fff;
+        }
+
+        .btn-info:hover {
+            background-color: #0d8aee;
+            border-color: #0d8aee;
+            color: #fff;
+        }
+
+        .btn-primary {
+            background-color: #3f51b5;
+            border-color: #3f51b5;
+        }
+
+        .btn-primary:hover {
+            background-color: #303f9f;
+            border-color: #303f9f;
+        }
+
+        .btn-success {
+            background-color: #4CAF50;
+            border-color: #4CAF50;
+        }
+
+        .btn-success:hover {
+            background-color: #3d8b40;
+            border-color: #3d8b40;
+        }
+
+        .btn-warning {
+            background-color: #FFC107;
+            border-color: #FFC107;
+            color: #212529;
+        }
+
+        .btn-warning:hover {
+            background-color: #e0a800;
+            border-color: #e0a800;
+            color: #212529;
+        }
+
+        /* Button styles for both modes */
+        .btn-danger {
+            background-color: #F44336;
+            border-color: #F44336;
+            color: #fff;
+        }
+
+        .btn-danger:hover {
+            background-color: #e53935;
+            border-color: #e53935;
+        }
+
+        .btn-secondary {
+            background-color: #607D8B;
+            border-color: #607D8B;
+            color: #fff;
+        }
+
+        .btn-secondary:hover {
+            background-color: #546e7a;
+            border-color: #546e7a;
+        }
+
+        body.dark-mode .btn-danger {
+            background-color: #e74c3c;
+            border-color: #e74c3c;
+        }
+
+        body.dark-mode .btn-danger:hover {
+            background-color: #c0392b;
+            border-color: #c0392b;
+        }
+
+        .card h5 {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+        }
+
+        .card p {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+        }
+
+        .row {
+            margin-top: 30px;
+        }
+
+        .col-md-4 {
+            margin-bottom: 20px;
+        }
+
+        .col-md-4 .card {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* Make sure cards are of equal size */
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+        }
+        .col-md-4 {
+            display: flex;
+            flex: 1;
+        }
+
+        .col-md-4 .card {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 280px; /* Ensuring cards have a consistent height */
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark px-4 mb-4">
+        <span class="navbar-brand">
+            <i class="fas fa-lock fa-lg me-2"></i>
+            <strong>FaceLock Admin</strong>
+        </span>
+        <div>
+            <span class="theme-toggle me-3" style="color: var(--btn-outline); cursor: pointer;"><i class="fas fa-moon"></i> Toggle Theme</span>
+            <a href="/" class="me-3 text-decoration-none" style="color: var(--text-color);"><i class="fas fa-home"></i> Homepage</a>
+            <a href="/admin/logout" class="text-decoration-none" style="color: var(--text-color);"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row g-4 justify-content-center">
+            <div class="col-md-4">
+                <div class="card">
+                    <h5><i class="fas fa-door-open me-2"></i>System Status</h5>
+                    <p>Door: <strong id="door-status" class="{% if door_status == 'Unlocked' %}text-success{% else %}text-danger{% endif %}">{{ door_status }}</strong></p>
+                    <p>Last Seen: <strong id="last-seen">{{ last_recognition_time or "N/A" }}</strong></p>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-success w-100" onclick="unlockDoor()">
+                            <i class="fas fa-unlock"></i> Unlock Door
+                        </button>
+                        <button class="btn btn-danger w-100" onclick="lockDoor()">
+                            <i class="fas fa-lock"></i> Lock Door
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <h5><i class="fas fa-users-cog me-2"></i>User Operations</h5>
+                    <div class="d-grid gap-2">
+                        <a href="/add_user" class="btn btn-primary w-100">
+                            <i class="fas fa-user-plus"></i> Add User
+                        </a>
+                        <a href="/delete_user" class="btn btn-secondary w-100">
+                            <i class="fas fa-users"></i> View / Delete Users
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <h5><i class="fas fa-tools me-2"></i>Admin Tools</h5>
+                    <div class="d-grid gap-2">
+                        <a href="/admin/access_logs" class="btn btn-info w-100">
+                            <i class="fas fa-history"></i> Access Logs
+                        </a>
+                        <a href="/admin/telegram_config" class="btn btn-primary w-100">
+                            <i class="fab fa-telegram"></i> Telegram Notifications
+                        </a>
+                        <a href="/admin/change-password" class="btn btn-warning w-100">
+                            <i class="fas fa-key"></i> Change Password
+                        </a>
+                        <a href="/admin/logout" class="btn btn-danger w-100">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Real-time polling every 3 seconds
+        setInterval(() => {
+            fetch('/api/status')
+                .then(res => res.json())
+                .then(data => {
+                    const doorStatusElement = document.getElementById("door-status");
+                    doorStatusElement.textContent = data.door_status;
+
+                    // Update the door status color
+                    doorStatusElement.className = ''; // Clear existing classes
+                    doorStatusElement.classList.add(data.door_status_class);
+
+                    document.getElementById("last-seen").textContent = data.last_recognition_time || "N/A";
+                });
+        }, 3000);
+
+        // Theme toggle is handled by theme.js
+
+        function unlockDoor() {
+            fetch('/api/unlock', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('door-status').textContent = 'Unlocked';
+                    document.getElementById('door-status').classList.remove('text-danger');
+                    document.getElementById('door-status').classList.add('text-success');
+                    alert('Door unlocked successfully');
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to unlock door. Please try again.');
+            });
+        }
+
+        function lockDoor() {
+            console.log('Lock door button clicked');
+            fetch('/api/lock', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(res => {
+                console.log('Lock door response status:', res.status);
+                return res.json();
+            })
+            .then(data => {
+                console.log('Lock door response data:', data);
+                if (data.success) {
+                    document.getElementById('door-status').textContent = 'Locked';
+                    document.getElementById('door-status').classList.remove('text-success');
+                    document.getElementById('door-status').classList.add('text-danger');
+                    alert('Door locked successfully');
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error in lock door request:', error);
+                alert('Failed to lock door. Please try again.');
+            });
+        }
+    </script>
+</body>
+</html>

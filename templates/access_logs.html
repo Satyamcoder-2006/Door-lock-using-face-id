@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Access Logs - FaceLock Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="{{ url_for('static', filename='theme.js') }}"></script>
+    <style>
+        :root {
+            --bg-color: #1e2124;
+            --text-color: #fff;
+            --card-bg: #282b30;
+            --border-color: #424549;
+            --primary-color: #0d6efd;
+            --success-color: #198754;
+            --danger-color: #dc3545;
+            --info-color: #0dcaf0;
+            --input-bg: #36393f;
+            --input-text: #fff;
+            --filter-bg: #1e2124;
+            --button-primary: #1a73e8;
+        }
+
+        body.light-mode {
+            --bg-color: #f5f5f5;
+            --text-color: #222;
+            --card-bg: #fff;
+            --border-color: #dee2e6;
+            --primary-color: #0d6efd;
+            --success-color: #198754;
+            --danger-color: #dc3545;
+            --info-color: #0dcaf0;
+            --input-bg: #fff;
+            --input-text: #333;
+            --filter-bg: #f8f9fa;
+            --button-primary: #0d6efd;
+        }
+
+        /* Override bootstrap styles with theme variables */
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            border-color: var(--border-color);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin-bottom: 1.5rem;
+        }
+
+        .card:hover {
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .table {
+            color: var(--text-color);
+        }
+
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        body.dark-mode .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .page-link {
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            border-color: var(--border-color);
+        }
+
+        .page-item.active .page-link {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .form-control, .form-select {
+            background-color: var(--input-bg);
+            color: var(--input-text);
+            border-color: var(--border-color);
+            border-radius: 4px;
+        }
+
+        .form-control:focus, .form-select:focus {
+            background-color: var(--input-bg);
+            color: var(--input-text);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+
+        .form-label {
+            color: var(--text-color);
+            font-weight: 500;
+        }
+
+        .form-floating label {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .form-floating>.form-control:focus~label,
+        .form-floating>.form-control:not(:placeholder-shown)~label,
+        .form-floating>.form-select~label {
+            background-color: transparent;
+            color: var(--primary-color);
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+        }
+
+        .badge.bg-success {
+            background-color: var(--success-color) !important;
+        }
+
+        .badge.bg-danger {
+            background-color: var(--danger-color) !important;
+        }
+
+        .navbar {
+            background-color: var(--card-bg);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Animation for table rows */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .table tbody tr {
+            animation: fadeIn 0.3s ease-out forwards;
+            animation-delay: calc(var(--animation-order) * 0.05s);
+            opacity: 0;
+        }
+
+        /* Improve button styling */
+        .btn {
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background-color: var(--button-primary);
+            border-color: var(--button-primary);
+        }
+
+        .btn-primary:hover, .btn-primary:focus {
+            background-color: #1967d2;
+            border-color: #1967d2;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-outline-secondary {
+            color: #adb5bd;
+            border-color: #495057;
+        }
+
+        .btn-outline-secondary:hover {
+            background-color: #495057;
+            border-color: #495057;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark px-4 mb-4" style="background-color: #1e2124; border-bottom: 1px solid var(--border-color);">
+        <span class="navbar-brand">
+            <i class="fas fa-lock fa-lg me-2"></i>
+            <strong>FaceLock Admin</strong>
+        </span>
+        <div>
+            <span class="theme-toggle me-3" style="color: var(--button-primary); cursor: pointer;"><i class="fas fa-moon"></i> Toggle Theme</span>
+            <a href="{{ url_for('admin_logout') }}" class="text-light text-decoration-none"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <h1><i class="fas fa-history"></i> Access Logs</h1>
+                <p>View and filter door access events</p>
+            </div>
+            <div class="col-md-4 text-end d-flex justify-content-end align-items-center">
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary me-2">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+                <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-home"></i> Home
+                </a>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card" style="background-color: var(--card-bg); border-color: var(--border-color);">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0"><i class="fas fa-cogs"></i> Actions</h5>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <form action="/direct_clear_action" method="post">
+                                <button type="submit" class="btn btn-danger" {% if total_count == 0 %}disabled{% endif %} style="background-color: #dc3545; border-color: #dc3545;">
+                                    <i class="fas fa-trash-alt"></i> Clear All Logs
+                                </button>
+                            </form>
+                            <button id="testApiBtn" class="btn btn-info" style="background-color: #0dcaf0; border-color: #0dcaf0;">
+                                <i class="fas fa-check-circle"></i> Test API
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Form -->
+        <div class="card mb-4" style="background-color: var(--filter-bg); border: none;">
+            <div class="card-body">
+                <h5 class="card-title mb-3"><i class="fas fa-filter"></i> Filter Logs</h5>
+                <form method="GET" action="{{ url_for('access_logs') }}" class="row g-3">
+                    <div class="col-md-4">
+                        <label for="user" class="form-label">User</label>
+                        <input type="text" class="form-control" id="user" name="user" value="{{ user_filter }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="access" class="form-label">Access Status</label>
+                        <select class="form-select" id="access" name="access">
+                            <option value="" {% if access_filter is none %}selected{% endif %}>All</option>
+                            <option value="true" {% if access_filter == True %}selected{% endif %}>Granted</option>
+                            <option value="false" {% if access_filter == False %}selected{% endif %}>Denied</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="limit" class="form-label">Results per page</label>
+                        <select class="form-select" id="limit" name="limit">
+                            <option value="10" {% if limit == 10 %}selected{% endif %}>10</option>
+                            <option value="20" {% if limit == 20 %}selected{% endif %}>20</option>
+                            <option value="50" {% if limit == 50 %}selected{% endif %}>50</option>
+                            <option value="100" {% if limit == 100 %}selected{% endif %}>100</option>
+                        </select>
+                    </div>
+                    <div class="col-12 mt-3">
+                        <button type="submit" class="btn btn-primary" style="background-color: var(--button-primary); border-color: var(--button-primary);">
+                            <i class="fas fa-search"></i> Apply Filters
+                        </button>
+                        <a href="{{ url_for('access_logs') }}" class="btn btn-outline-secondary ms-2">
+                            <i class="fas fa-undo"></i> Reset Filters
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Logs Table -->
+        <div class="card" style="background-color: var(--card-bg); border-color: var(--border-color);">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list"></i> Access Events
+                        <span class="badge bg-secondary">{{ total_count }} total</span>
+                    </h5>
+                    <div>
+                        <span class="text-muted">{{ total_count }} records found</span>
+                    </div>
+                </div>
+
+                {% if logs %}
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover" style="background-color: var(--card-bg); color: var(--text-color);">
+                        <thead style="background-color: rgba(0,0,0,0.2);">
+                            <tr>
+                                <th>Date & Time</th>
+                                <th>User</th>
+                                <th>Method</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                            <tr>
+                                <td><i class="fas fa-calendar-alt me-2 text-muted"></i>{{ log.datetime }}</td>
+                                <td><i class="fas fa-user me-2 text-muted"></i>{{ log.user }}</td>
+                                <td><i class="fas fa-key me-2 text-muted"></i>{{ log.method }}</td>
+                                <td>
+                                    {% if log.access_granted %}
+                                    <span class="badge bg-success"><i class="fas fa-check me-1"></i>Access Granted</span>
+                                    {% else %}
+                                    <span class="badge bg-danger"><i class="fas fa-times me-1"></i>Access Denied</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                {% if total_pages > 1 %}
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul class="pagination pagination-lg justify-content-center" style="--bs-pagination-bg: var(--card-bg); --bs-pagination-color: var(--text-color); --bs-pagination-border-color: var(--border-color);">
+                        <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                            <a class="page-link" href="{{ url_for('access_logs', page=page-1, limit=limit, user=user_filter, access=access_filter) }}" aria-label="Previous" style="background-color: var(--card-bg); color: var(--text-color); border-color: var(--border-color);">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+
+                        {% for p in range(1, total_pages + 1) %}
+                            {% if p == page %}
+                            <li class="page-item active">
+                                <span class="page-link" style="background-color: var(--button-primary); border-color: var(--button-primary);">{{ p }}</span>
+                            </li>
+                            {% elif p <= 3 or p >= total_pages - 2 or (p >= page - 1 and p <= page + 1) %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('access_logs', page=p, limit=limit, user=user_filter, access=access_filter) }}" style="background-color: var(--card-bg); color: var(--text-color); border-color: var(--border-color);">{{ p }}</a>
+                            </li>
+                            {% elif p == 4 and page > 4 or p == total_pages - 3 and page < total_pages - 3 %}
+                            <li class="page-item disabled">
+                                <span class="page-link" style="background-color: var(--card-bg); color: var(--text-color); border-color: var(--border-color);">...</span>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        <li class="page-item {% if page == total_pages %}disabled{% endif %}">
+                            <a class="page-link" href="{{ url_for('access_logs', page=page+1, limit=limit, user=user_filter, access=access_filter) }}" aria-label="Next" style="background-color: var(--card-bg); color: var(--text-color); border-color: var(--border-color);">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+                {% endif %}
+
+                {% else %}
+                <div class="alert" style="background-color: rgba(13, 202, 240, 0.15); color: var(--text-color); border-color: rgba(13, 202, 240, 0.4);">
+                    <i class="fas fa-info-circle"></i> No access logs found matching your criteria.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Additional JavaScript for the access logs page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-refresh the logs every 30 seconds
+            const autoRefreshInterval = setInterval(function() {
+                // Only refresh if the user hasn't interacted with the form
+                if (!document.activeElement || !document.activeElement.closest('form')) {
+                    location.reload();
+                }
+            }, 30000);
+
+            // Handle test API button
+            const testApiBtn = document.getElementById('testApiBtn');
+            if (testApiBtn) {
+                testApiBtn.addEventListener('click', function() {
+                    testApiBtn.disabled = true;
+                    const originalText = testApiBtn.innerHTML;
+                    testApiBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
+
+                    fetch('/test_api', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Create a nicer looking alert using Bootstrap
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                        alertDiv.innerHTML = `
+                            <h4 class="alert-heading"><i class="fas fa-check-circle"></i> API Test Successful</h4>
+                            <p><strong>Success:</strong> ${data.success}</p>
+                            <p><strong>Message:</strong> ${data.message}</p>
+                            <p><strong>Method:</strong> ${data.method}</p>
+                            <p><strong>Admin Logged In:</strong> ${data.admin_logged_in}</p>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        `;
+
+                        // Insert the alert at the top of the container
+                        const container = document.querySelector('.container');
+                        container.insertBefore(alertDiv, container.firstChild);
+
+                        // Auto-dismiss after 5 seconds
+                        setTimeout(() => {
+                            alertDiv.classList.remove('show');
+                            setTimeout(() => alertDiv.remove(), 500);
+                        }, 5000);
+
+                        testApiBtn.disabled = false;
+                        testApiBtn.innerHTML = originalText;
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+
+                        // Create an error alert
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+                        alertDiv.innerHTML = `
+                            <h4 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> API Test Failed</h4>
+                            <p>${error.message}</p>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        `;
+
+                        // Insert the alert at the top of the container
+                        const container = document.querySelector('.container');
+                        container.insertBefore(alertDiv, container.firstChild);
+
+                        testApiBtn.disabled = false;
+                        testApiBtn.innerHTML = originalText;
+                    });
+                });
+            }
+
+            // Add Bootstrap JS for alert dismissal
+            if (typeof bootstrap === 'undefined') {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js';
+                document.body.appendChild(script);
+            }
+
+            // Initialize animation for table rows
+            const tableRows = document.querySelectorAll('.table tbody tr');
+            tableRows.forEach((row, index) => {
+                row.style.setProperty('--animation-order', index);
+            });
+        });
+    </script>
+</body>
+</html>

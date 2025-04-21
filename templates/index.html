@@ -1,0 +1,114 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Recognition Door Lock</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="{{ url_for('static', filename='theme.js') }}"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-lock"></i> Face Recognition Door Lock System</h1>
+            <div class="theme-toggle"><i class="fas fa-moon"></i> Dark Mode</div>
+            <p class="system-status">
+                <i class="fas fa-door-closed"></i>
+                Door Status:
+                <span id="doorStatus" class="{{ 'unlocked' if door_status == 'Unlocked' else 'locked' }}">
+                    <i class="fas {{ 'fa-unlock' if door_status == 'Unlocked' else 'fa-lock' }}"></i>
+                    {{ door_status }}
+                </span>
+            </p>
+        </header>
+
+        <div class="main-content">
+            <div class="video-container">
+                <h2><i class="fas fa-video"></i> Camera Feed</h2>
+                <img src="{{ url_for('video_feed') }}" alt="Video Feed">
+            </div>
+
+            <div class="controls">
+                <h2><i class="fas fa-sliders-h"></i> Controls</h2>
+                <div class="buttons">
+                    {% if session.get('admin_logged_in') %}
+                        <a href="/admin/dashboard" class="btn primary">
+                            <i class="fas fa-tachometer-alt"></i> Admin Dashboard
+                        </a>
+                        <a href="{{ url_for('add_user_form') }}" class="btn primary">
+                            <i class="fas fa-user-plus"></i> Add New User
+                        </a>
+                        <a href="{{ url_for('admin_logout') }}" class="btn secondary">
+                            <i class="fas fa-sign-out-alt"></i> Logout Admin
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('admin_login', next=url_for('index')) }}" class="btn primary">
+                            <i class="fas fa-sign-in-alt"></i> Admin Login
+                        </a>
+                    {% endif %}
+                    <p class="info-text">
+                        <i class="fas fa-info-circle"></i>
+                        Face verification is automatic. Please look at the camera.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div id="user-management" class="user-management">
+            <h2><i class="fas fa-users"></i> Registered Users</h2>
+            {% if session.get('admin_logged_in') %}
+                <p class="info-text">
+                    <i class="fas fa-info-circle"></i>
+                    User management is available in the <a href="/admin/dashboard">Admin Dashboard</a>.
+                </p>
+            {% else %}
+                <p class="info-text">
+                    <i class="fas fa-info-circle"></i>
+                    User management is restricted to administrators. Please <a href="{{ url_for('admin_login') }}">login</a> to manage users.
+                </p>
+            {% endif %}
+            {% if users %}
+                <div class="user-list">
+                    {% for user in users %}
+                        <div class="user-card">
+                            <div class="user-info">
+                                <h3><i class="fas fa-user"></i> {{ user.name }}</h3>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="no-users">
+                    <i class="fas fa-user-slash"></i>
+                    No users registered yet.
+                </p>
+            {% endif %}
+        </div>
+    </div>
+
+    <footer>
+        <p><i class="fas fa-copyright"></i> Face Recognition Door Lock System 2025</p>
+    </footer>
+
+    <script>
+        // Auto-refresh door status
+        setInterval(function() {
+            fetch(window.location.href)
+                .then(response => response.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const newStatus = doc.getElementById('doorStatus').textContent.trim();
+                    const statusSpan = document.getElementById('doorStatus');
+                    const icon = statusSpan.querySelector('i');
+
+                    statusSpan.textContent = newStatus;
+                    statusSpan.className = newStatus === 'Unlocked' ? 'unlocked' : 'locked';
+                    icon.className = newStatus === 'Unlocked' ? 'fas fa-unlock' : 'fas fa-lock';
+                });
+        }, 1000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+<!-- templates/unauthorized.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unauthorized Access - Face Recognition Door Lock</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="{{ url_for('static', filename='theme.js') }}"></script>
+</head>
+<body class="unauthorized-page">
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin: 20px 0;">
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary"><i class="fas fa-home"></i> Back to Homepage</a>
+            <div class="theme-toggle"><i class="fas fa-moon"></i> Dark Mode</div>
+        </div>
+        <div class="unauthorized-message">
+            <h1>Access Denied</h1>
+            <div class="alert danger">
+                <p>Your face was not recognized by the system.</p>
+                <p>Please contact an administrator if you believe this is a mistake.</p>
+            </div>
+            <a href="{{ url_for('index') }}" class="btn primary">Return to Dashboard</a>
+        </div>
+    </div>
+</body>
+</html>

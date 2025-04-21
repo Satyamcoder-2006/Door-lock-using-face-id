@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delete User - Face Recognition Door Lock</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="{{ url_for('static', filename='theme.js') }}"></script>
+    <style>
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 2s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        .overlay-message {
+            color: white;
+            font-size: 18px;
+            text-align: center;
+            max-width: 80%;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status-message {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading overlay -->
+    <div id="loadingOverlay" class="overlay">
+        <div class="spinner"></div>
+        <div id="overlayMessage" class="overlay-message">Deleting user and retraining model...</div>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-user-minus"></i> Delete User</h1>
+            <div class="theme-toggle"><i class="fas fa-moon"></i> Dark Mode</div>
+            <div class="header-buttons">
+                <a href="{{ url_for('admin_dashboard') }}" class="btn secondary"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+                <a href="{{ url_for('index') }}" class="btn primary"><i class="fas fa-home"></i> Back to Homepage</a>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div class="user-management">
+                <h2><i class="fas fa-users"></i> Registered Users</h2>
+                {% if users %}
+                    <div class="user-list">
+                        {% for user in users %}
+                            <div class="user-card">
+                                <div class="user-info">
+                                    <h3><i class="fas fa-user"></i> {{ user.name }}</h3>
+                                </div>
+                                <div class="user-actions">
+                                    <button class="btn danger" onclick="deleteUser('{{ user.name }}')" id="deleteBtn-{{ user.name }}">
+                                        <i class="fas fa-trash-alt"></i> Delete
+                                    </button>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="no-users">
+                        <i class="fas fa-user-slash"></i>
+                        No users registered yet.
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p><i class="fas fa-copyright"></i> Face Recognition Door Lock System 2025</p>
+    </footer>
+
+    <script>
+        function deleteUser(username) {
+            if (confirm(`Are you sure you want to delete user ${username}? This action cannot be undone.\n\nNote: For security reasons, the door will be locked immediately.`)) {
+                const deleteBtn = document.getElementById(`deleteBtn-${username}`);
+                const originalText = deleteBtn.innerHTML;
+                deleteBtn.disabled = true;
+                deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+
+                // Show the loading overlay
+                const overlay = document.getElementById('loadingOverlay');
+                const overlayMessage = document.getElementById('overlayMessage');
+                overlayMessage.innerHTML = `<i class="fas fa-lock"></i> Locking door and deleting user ${username}.<br>Retraining model. Please wait...`;
+                overlay.style.display = 'flex';
+
+                // Add status message below the button as well
+                const statusDiv = document.createElement('div');
+                statusDiv.className = 'status-message';
+                statusDiv.innerHTML = '<i class="fas fa-lock"></i> <i class="fas fa-info-circle"></i> Locking door, deleting user and retraining model. Please wait...';
+                statusDiv.style.color = '#3498db';
+                deleteBtn.parentNode.appendChild(statusDiv);
+
+                fetch(`/delete_user/${username}`, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            throw new Error(data.message || `HTTP error! status: ${response.status}`);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        // Update overlay message
+                        overlayMessage.innerHTML = `<i class="fas fa-check-circle"></i> ${data.message}`;
+
+                        // Update status message
+                        statusDiv.innerHTML = `<i class="fas fa-check-circle"></i> ${data.message}`;
+                        statusDiv.style.color = '#2ecc71';
+
+                        // Hide overlay after a delay
+                        setTimeout(() => {
+                            overlay.style.display = 'none';
+                            window.location.reload();
+                        }, 2000);
+                    } else {
+                        throw new Error(data.message || 'Unknown error occurred');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+
+                    // Update overlay message
+                    overlayMessage.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Error: ${error.message}`;
+
+                    // Update status message
+                    statusDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${error.message}`;
+                    statusDiv.style.color = '#e74c3c';
+
+                    // Hide overlay after a delay
+                    setTimeout(() => {
+                        overlay.style.display = 'none';
+                    }, 3000);
+
+                    deleteBtn.disabled = false;
+                    deleteBtn.innerHTML = originalText;
+                });
+            }
+        }
+    </script>
+</body>
+</html>
