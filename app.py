@@ -9,6 +9,7 @@ import subprocess
 import sys
 import json
 import logging
+import atexit
 from logging.handlers import RotatingFileHandler
 from flask import Flask, render_template, request, redirect, url_for, Response, jsonify, session, send_from_directory, flash
 from utils import ArduinoManager, trigger_unlock, enhance_image, find_arduino_port, try_all_available_ports
@@ -1371,12 +1372,53 @@ if __name__ == '__main__':
             print("ℹ️ No face recognition model loaded. System will start without recognition capabilities.")
             print("ℹ️ Add users through the admin interface to enable face recognition.")
 
+        # Register a shutdown handler to ensure the door is locked
+        def shutdown_handler():
+            print("🛑 Application shutting down...")
+            global door_status, arduino_manager
+
+            # Ensure the door is locked
+            if door_status == "Unlocked":
+                print("🔒 Locking door during shutdown...")
+                try:
+                    if arduino_manager and arduino_manager.ser:
+                        for _ in range(3):  # Try multiple times
+                            arduino_manager.write(b'l')
+                            arduino_manager.flush()
+                            time.sleep(0.2)
+                        print("🔒 Door locked during shutdown")
+                    else:
+                        print("⚠️ Arduino manager not available for locking")
+                except Exception as e:
+                    print(f"⚠️ Error locking door during shutdown: {e}")
+
+            # Release camera if active
+            if camera:
+                camera.release()
+            cv2.destroyAllWindows()
+
+            print("👋 Application shutdown complete")
+
+        # Register the shutdown handler
+        atexit.register(shutdown_handler)
+
         # Start the Flask application
         print("🚀 Starting Face Recognition Door Lock System...")
         app.run(debug=True, use_reloader=False, host='0.0.0.0', port=5000)
     except Exception as e:
         print(f"❌ App startup error: {e}")
     finally:
+        # This will be called in addition to the atexit handler
+        if door_status == "Unlocked" and arduino_manager and arduino_manager.ser:
+            print("🔒 Final attempt to lock door...")
+            try:
+                arduino_manager.write(b'l')
+                arduino_manager.flush()
+                time.sleep(0.2)
+                print("🔒 Door locked in final cleanup")
+            except Exception as e:
+                print(f"⚠️ Final door lock attempt failed: {e}")
+
         if camera:
             camera.release()
         cv2.destroyAllWindows()

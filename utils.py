@@ -13,6 +13,19 @@ def cleanup_arduino():
     global arduino, arduino_connected
     if arduino is not None:
         try:
+            # First, try to lock the door for safety
+            print("🔒 Locking door before closing Arduino connection...")
+            try:
+                # Send lock command multiple times to ensure it's received
+                for _ in range(3):
+                    arduino.write(b'l')
+                    arduino.flush()
+                    time.sleep(0.2)
+                print("🔒 Door lock command sent before shutdown")
+            except Exception as lock_error:
+                print(f"⚠️ Error locking door during shutdown: {lock_error}")
+
+            # Then clean up and close the connection
             arduino.reset_input_buffer()
             arduino.reset_output_buffer()
             arduino.flush()
@@ -100,6 +113,18 @@ class ArduinoManager:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        # First try to lock the door if we have a connection
+        if self.ser:
+            try:
+                print("🔒 Locking door before exiting ArduinoManager context...")
+                self.write(b'l')
+                self.flush()
+                time.sleep(0.2)
+                print("🔒 Door lock command sent from ArduinoManager")
+            except Exception as lock_error:
+                print(f"⚠️ Error locking door from ArduinoManager: {lock_error}")
+
+        # Then clean up the Arduino connection
         cleanup_arduino()
 
     def write(self, data):
