@@ -1,0 +1,172 @@
+/* Modern Card Components */
+.card {
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    transition: all 0.3s ease;
+    border: 1px solid var(--card-border);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+.card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+    background-color: rgba(0, 0, 0, 0.02);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+body.dark-mode .card-header {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+.card-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.card-title i {
+    color: var(--primary-color);
+    font-size: 1.1em;
+}
+
+.card-body {
+    padding: 20px;
+    flex: 1;
+}
+
+.card-footer {
+    padding: 12px 20px;
+    border-top: 1px solid var(--border-color);
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+body.dark-mode .card-footer {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* Card grid system */
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+/* Card variations */
+.card.primary {
+    border-top: 4px solid var(--primary-color);
+}
+
+.card.secondary {
+    border-top: 4px solid var(--secondary-color);
+}
+
+.card.success {
+    border-top: 4px solid var(--success-color);
+}
+
+.card.danger {
+    border-top: 4px solid var(--danger-color);
+}
+
+.card.warning {
+    border-top: 4px solid var(--warning-color);
+}
+
+.card.info {
+    border-top: 4px solid var(--info-color);
+}
+
+/* Stats card */
+.stats-card {
+    text-align: center;
+    padding: 20px;
+}
+
+.stats-card .stats-icon {
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+    color: var(--primary-color);
+}
+
+.stats-card .stats-value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+    color: var(--text-color);
+}
+
+.stats-card .stats-label {
+    font-size: 0.9rem;
+    color: var(--muted-color);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Dashboard widgets */
+.widget {
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+    margin-bottom: 20px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    border: 1px solid var(--card-border);
+}
+
+.widget-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+body.dark-mode .widget-header {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+.widget-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.widget-title i {
+    color: var(--primary-color);
+}
+
+.widget-body {
+    padding: 20px;
+}
+
+.widget-footer {
+    padding: 10px 20px;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.9rem;
+    color: var(--muted-color);
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+body.dark-mode .widget-footer {
+    background-color: rgba(255, 255, 255, 0.02);
+}

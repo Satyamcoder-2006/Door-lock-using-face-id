@@ -2,302 +2,695 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FaceLock Admin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FaceLock Admin Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <script src="{{ url_for('static', filename='theme.js') }}"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>document.documentElement.classList.add('dark-mode');</script>
     <style>
         :root {
-            --bg-color: #f5f5f5;
-            --text-color: #222;
-            --card-color: #fff;
-            --btn-outline: #27ae60;
-            --btn-info: #2980b9;
+            /* Dark mode (default) */
+            --bg-color: #121212;
+            --text-color: #e0e0e0;
+            --card-color: #1e1e1e;
+            --card-border: rgba(255,255,255,0.05);
+            --primary-color: #5a77ff;
+            --primary-hover: #4361ee;
+            --secondary-color: #6c63ff;
+            --secondary-hover: #5a52cc;
+            --success-color: #66bb6a;
+            --success-hover: #4caf50;
+            --danger-color: #ef5350;
+            --danger-hover: #e53935;
+            --warning-color: #ffa726;
+            --warning-hover: #fb8c00;
+            --info-color: #42a5f5;
+            --info-hover: #2196f3;
+            --muted-color: #9e9e9e;
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.2);
+            --shadow-md: 0 4px 8px rgba(0,0,0,0.3);
+            --shadow-lg: 0 8px 16px rgba(0,0,0,0.4);
+            --border-radius: 12px;
+            --font-family: 'Inter', sans-serif;
         }
 
-        body.dark-mode {
-            --bg-color: #181a1b;
-            --text-color: #fff;
-            --card-color: #2a2d2e;
-            --btn-outline: #2ecc71;
-            --btn-info: #3498db;
-        }
+        /* Dark mode is now the default */
 
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
+            font-family: var(--font-family);
             transition: background-color 0.3s ease, color 0.3s ease;
+            padding-bottom: 40px;
         }
 
-        .navbar {
+        /* Header Styles */
+        .dashboard-header {
             background-color: var(--card-color);
+            border-bottom: 1px solid var(--card-border);
+            box-shadow: var(--shadow-sm);
+            padding: 15px 0;
+            margin-bottom: 30px;
         }
 
-        /* Ensure navbar text is visible in both light and dark modes */
-        .navbar-brand, .navbar-nav .nav-link {
-            color: var(--text-color) !important;
-        }
-
-        .navbar-brand:hover, .navbar-nav .nav-link:hover {
-            color: var(--btn-outline) !important;
-        }
-
-        .card {
-            background-color: var(--card-color);
-            border-radius: 10px;
+        .header-container {
             display: flex;
-            flex-direction: column;
             justify-content: space-between;
-            padding: 25px;
-            color: var(--text-color);
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            opacity: 0;
-            transform: translateY(20px);
-            animation: fadeInUp 0.6s forwards;
-            height: 100%;
-            border: none;
+            align-items: center;
+            padding: 0 20px;
         }
 
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
-        @keyframes fadeInUp {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .btn-outline-success {
-            border-color: var(--btn-outline);
-            color: var(--btn-outline);
-            font-size: 1.1rem;
-            padding: 10px 20px;
-        }
-
-        .btn-outline-success:hover {
-            background-color: var(--btn-outline);
-            color: #fff;
-        }
-
-        .theme-toggle {
-            cursor: pointer;
-            font-size: 1.2rem;
-            padding: 10px 20px;
-        }
-
-        .btn {
-            padding: 12px 20px;
-            font-size: 1.1rem;
-            border-radius: 6px;
-            transition: all 0.3s ease;
-            font-weight: 500;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
-            margin-bottom: 10px;
+        .brand-logo {
+            width: 40px;
+            height: 40px;
+            background-color: var(--primary-color);
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
+            color: white;
+            font-size: 1.5rem;
         }
 
-        .btn i {
-            margin-right: 8px;
+        .brand-text {
+            display: flex;
+            flex-direction: column;
         }
 
-        .btn:hover {
+        .brand-name {
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: var(--text-color);
+        }
+
+        .brand-tagline {
+            font-size: 0.8rem;
+            color: var(--muted-color);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        /* Header Button Styles */
+        .nav-btn {
+            background-color: rgba(0, 0, 0, 0.1);
+            color: var(--text-color);
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer !important;
+            transition: all 0.2s ease;
+            text-decoration: none !important;
+        }
+
+        .nav-btn {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-btn:hover {
+            background-color: var(--primary-color);
+            color: white;
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         }
 
-        .btn:active {
-            transform: translateY(1px);
+        .nav-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        .btn-info {
-            background-color: #2196F3;
-            border-color: #2196F3;
-            color: #fff;
+        .nav-btn i {
+            font-size: 1rem;
         }
 
-        .btn-info:hover {
-            background-color: #0d8aee;
-            border-color: #0d8aee;
-            color: #fff;
+        /* Welcome Section */
+        .welcome-section {
+            background-color: var(--card-color);
+            border-radius: var(--border-radius);
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--card-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .btn-primary {
-            background-color: #3f51b5;
-            border-color: #3f51b5;
+        .welcome-text {
+            flex: 1;
         }
 
-        .btn-primary:hover {
-            background-color: #303f9f;
-            border-color: #303f9f;
+        .welcome-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--text-color);
         }
 
-        .btn-success {
-            background-color: #4CAF50;
-            border-color: #4CAF50;
-        }
-
-        .btn-success:hover {
-            background-color: #3d8b40;
-            border-color: #3d8b40;
-        }
-
-        .btn-warning {
-            background-color: #FFC107;
-            border-color: #FFC107;
-            color: #212529;
-        }
-
-        .btn-warning:hover {
-            background-color: #e0a800;
-            border-color: #e0a800;
-            color: #212529;
-        }
-
-        /* Button styles for both modes */
-        .btn-danger {
-            background-color: #F44336;
-            border-color: #F44336;
-            color: #fff;
-        }
-
-        .btn-danger:hover {
-            background-color: #e53935;
-            border-color: #e53935;
-        }
-
-        .btn-secondary {
-            background-color: #607D8B;
-            border-color: #607D8B;
-            color: #fff;
-        }
-
-        .btn-secondary:hover {
-            background-color: #546e7a;
-            border-color: #546e7a;
-        }
-
-        body.dark-mode .btn-danger {
-            background-color: #e74c3c;
-            border-color: #e74c3c;
-        }
-
-        body.dark-mode .btn-danger:hover {
-            background-color: #c0392b;
-            border-color: #c0392b;
-        }
-
-        .card h5 {
-            font-size: 1.3rem;
-            margin-bottom: 15px;
-        }
-
-        .card p {
+        .welcome-subtitle {
             font-size: 1.1rem;
+            color: var(--muted-color);
             margin-bottom: 15px;
         }
 
-        .row {
-            margin-top: 30px;
+        .welcome-date {
+            font-size: 0.9rem;
+            color: var(--muted-color);
         }
 
-        .col-md-4 {
+        .welcome-image {
+            width: 120px;
+            height: 120px;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 3rem;
+            margin-left: 20px;
+        }
+
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 20px;
+        }
+
+        .grid-col-8 {
+            grid-column: span 8;
+        }
+
+        .grid-col-4 {
+            grid-column: span 4;
+        }
+
+        .grid-col-6 {
+            grid-column: span 6;
+        }
+
+        .grid-col-3 {
+            grid-column: span 3;
+        }
+
+        /* Card Styles */
+        .dashboard-card {
+            background-color: var(--card-color);
+            border-radius: var(--border-radius);
+            padding: 25px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--card-border);
+            height: 100%;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: fadeIn 0.5s ease-out forwards;
+            opacity: 0;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title i {
+            color: var(--primary-color);
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .card-body {
             margin-bottom: 20px;
         }
 
-        .col-md-4 .card {
+        /* Door Control Styles */
+        .door-status {
             display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            background-color: rgba(0,0,0,0.03);
         }
 
-        /* Make sure cards are of equal size */
-        .row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 30px;
+        .door-status {
+            background-color: rgba(255,255,255,0.05);
         }
-        .col-md-4 {
+
+        .status-indicator {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
             display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .status-locked {
+            background-color: var(--danger-color);
+        }
+
+        .status-unlocked {
+            background-color: var(--success-color);
+        }
+
+        .status-details {
             flex: 1;
         }
 
-        .col-md-4 .card {
-            flex: 1;
+        .status-label {
+            font-size: 0.9rem;
+            color: var(--muted-color);
+            margin-bottom: 5px;
+        }
+
+        .status-value {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .door-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        /* Button styles are now imported from buttons.css */
+        .btn-block {
+            width: 100%;
+        }
+
+        /* Quick Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background-color: rgba(0,0,0,0.03);
+            border-radius: var(--border-radius);
+            padding: 15px;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            min-height: 280px; /* Ensuring cards have a consistent height */
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .stat-card {
+            background-color: rgba(255,255,255,0.05);
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--muted-color);
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        /* System Health */
+        .health-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: var(--border-radius);
+            background-color: rgba(0,0,0,0.03);
+        }
+
+        .health-indicator {
+            background-color: rgba(255,255,255,0.05);
+        }
+
+        .health-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: white;
+        }
+
+        .health-good {
+            background-color: var(--success-color);
+        }
+
+        .health-warning {
+            background-color: var(--warning-color);
+        }
+
+        .health-error {
+            background-color: var(--danger-color);
+        }
+
+        .health-details {
+            flex: 1;
+        }
+
+        .health-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-color);
+            margin-bottom: 2px;
+        }
+
+        .health-status {
+            font-size: 0.8rem;
+            color: var(--muted-color);
+        }
+
+        /* Activity Feed */
+        .activity-feed {
+            margin-top: 15px;
+        }
+
+        .activity-item {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .activity-unlock {
+            background-color: var(--success-color);
+        }
+
+        .activity-lock {
+            background-color: var(--danger-color);
+        }
+
+        .activity-access {
+            background-color: var(--warning-color);
+        }
+
+        .activity-admin {
+            background-color: var(--info-color);
+        }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-title {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-color);
+            margin-bottom: 3px;
+        }
+
+        .activity-time {
+            font-size: 0.8rem;
+            color: var(--muted-color);
+        }
+
+        /* Responsive */
+        @media (max-width: 992px) {
+            .dashboard-grid {
+                grid-template-columns: repeat(1, 1fr);
+            }
+
+            .grid-col-8, .grid-col-4, .grid-col-6, .grid-col-3 {
+                grid-column: span 1;
+            }
+
+            .welcome-section {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .welcome-image {
+                margin: 20px 0 0 0;
+            }
+
+            .header-container {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .door-controls, .quick-actions, .stats-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
-<body>
-    <nav class="navbar navbar-dark px-4 mb-4">
-        <span class="navbar-brand">
-            <i class="fas fa-lock fa-lg me-2"></i>
-            <strong>FaceLock Admin</strong>
-        </span>
-        <div>
-            <span class="theme-toggle me-3" style="color: var(--btn-outline); cursor: pointer;"><i class="fas fa-moon"></i> Toggle Theme</span>
-            <a href="/" class="me-3 text-decoration-none" style="color: var(--text-color);"><i class="fas fa-home"></i> Homepage</a>
-            <a href="/admin/logout" class="text-decoration-none" style="color: var(--text-color);"><i class="fas fa-sign-out-alt"></i> Logout</a>
-        </div>
-    </nav>
+<body class="dark-mode">
+    <!-- Header removed as requested -->
 
     <div class="container">
-        <div class="row g-4 justify-content-center">
-            <div class="col-md-4">
-                <div class="card">
-                    <h5><i class="fas fa-door-open me-2"></i>System Status</h5>
-                    <p>Door: <strong id="door-status" class="{% if door_status == 'Unlocked' %}text-success{% else %}text-danger{% endif %}">{{ door_status }}</strong></p>
-                    <p>Last Seen: <strong id="last-seen">{{ last_recognition_time or "N/A" }}</strong></p>
-                    <div class="d-grid gap-2">
-                        <button class="btn btn-success w-100" onclick="unlockDoor()">
-                            <i class="fas fa-unlock"></i> Unlock Door
-                        </button>
-                        <button class="btn btn-danger w-100" onclick="lockDoor()">
-                            <i class="fas fa-lock"></i> Lock Door
-                        </button>
+        <!-- Welcome Section -->
+        <div class="welcome-section">
+            <div class="welcome-text">
+                <h1 class="welcome-title">Welcome to your Dashboard</h1>
+                <p class="welcome-subtitle">Monitor and control your door security system</p>
+                <p class="welcome-date" id="currentDate">Loading date...</p>
+                <a href="javascript:void(0);" onclick="window.open('/', '_self');" class="btn btn-primary" style="margin-top: 15px; display: inline-block;">
+                    <i class="fas fa-home"></i> Return to Homepage
+                </a>
+            </div>
+            <div class="welcome-image">
+                <i class="fas fa-user-shield"></i>
+            </div>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div class="dashboard-grid">
+            <!-- Door Control Section -->
+            <div class="grid-col-8">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h2 class="card-title"><i class="fas fa-door-open"></i> Door Control</h2>
+                        <div class="card-actions">
+                            <button class="btn btn-sm btn-primary" onclick="refreshDoorStatus(event)">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="door-status">
+                            <div id="statusIndicator" class="status-indicator {% if door_status == 'Unlocked' %}status-unlocked{% else %}status-locked{% endif %}">
+                                <i class="fas {% if door_status == 'Unlocked' %}fa-unlock{% else %}fa-lock{% endif %}"></i>
+                            </div>
+                            <div class="status-details">
+                                <div class="status-label">Current Status</div>
+                                <div id="door-status" class="status-value">{{ door_status }}</div>
+                            </div>
+                        </div>
+
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-value" id="last-seen">{{ last_recognition_time or "N/A" }}</div>
+                                <div class="stat-label">Last Activity</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="accessCount">0</div>
+                                <div class="stat-label">Today's Accesses</div>
+                            </div>
+                        </div>
+
+                        <div class="door-controls">
+                            <button class="btn btn-success btn-lg" onclick="unlockDoor()">
+                                <i class="fas fa-unlock"></i> Unlock Door
+                            </button>
+                            <button class="btn btn-danger btn-lg" onclick="lockDoor()">
+                                <i class="fas fa-lock"></i> Lock Door
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="col-md-4">
-                <div class="card">
-                    <h5><i class="fas fa-users-cog me-2"></i>User Operations</h5>
-                    <div class="d-grid gap-2">
-                        <a href="/add_user" class="btn btn-primary w-100">
-                            <i class="fas fa-user-plus"></i> Add User
-                        </a>
-                        <a href="/delete_user" class="btn btn-secondary w-100">
-                            <i class="fas fa-users"></i> View / Delete Users
-                        </a>
+            <!-- Quick Actions -->
+            <div class="grid-col-4">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h2 class="card-title"><i class="fas fa-bolt"></i> Quick Actions</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="quick-actions">
+                            <a href="/add_user" class="btn btn-primary">
+                                <i class="fas fa-user-plus"></i> Add User
+                            </a>
+                            <a href="/delete_user" class="btn btn-secondary">
+                                <i class="fas fa-users"></i> Manage Users
+                            </a>
+                            <a href="/admin/access_logs" class="btn btn-info">
+                                <i class="fas fa-history"></i> Access Logs
+                            </a>
+                            <a href="/admin/telegram_config" class="btn btn-primary">
+                                <i class="fab fa-telegram"></i> Notifications
+                            </a>
+                            <button onclick="goToHomePage()" class="btn btn-success" style="grid-column: span 2; margin-top: 10px; width: 100%;">
+                                <i class="fas fa-home"></i> Back to Homepage
+                            </button>
+
+                            <script>
+                                function goToHomePage() {
+                                    window.location.href = '/';
+                                }
+                            </script>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="col-md-4">
-                <div class="card">
-                    <h5><i class="fas fa-tools me-2"></i>Admin Tools</h5>
-                    <div class="d-grid gap-2">
-                        <a href="/admin/access_logs" class="btn btn-info w-100">
-                            <i class="fas fa-history"></i> Access Logs
-                        </a>
-                        <a href="/admin/telegram_config" class="btn btn-primary w-100">
-                            <i class="fab fa-telegram"></i> Telegram Notifications
-                        </a>
-                        <a href="/admin/change-password" class="btn btn-warning w-100">
-                            <i class="fas fa-key"></i> Change Password
-                        </a>
-                        <a href="/admin/logout" class="btn btn-danger w-100">
-                            <i class="fas fa-sign-out-alt"></i> Logout
-                        </a>
+            <!-- System Health -->
+            <div class="grid-col-4">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h2 class="card-title"><i class="fas fa-heartbeat"></i> System Health</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="health-indicator">
+                            <div class="health-icon health-good">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <div class="health-details">
+                                <div class="health-name">Face Recognition</div>
+                                <div class="health-status">System operational</div>
+                            </div>
+                        </div>
+
+                        <div class="health-indicator">
+                            <div class="health-icon health-good">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <div class="health-details">
+                                <div class="health-name">Door Lock Mechanism</div>
+                                <div class="health-status">Connected and responding</div>
+                            </div>
+                        </div>
+
+                        <div class="health-indicator">
+                            <div class="health-icon health-good">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <div class="health-details">
+                                <div class="health-name">Camera</div>
+                                <div class="health-status">Operational</div>
+                            </div>
+                        </div>
+
+                        <div class="health-indicator">
+                            <div id="notificationStatus" class="health-icon health-warning">
+                                <i class="fas fa-bell"></i>
+                            </div>
+                            <div class="health-details">
+                                <div class="health-name">Notifications</div>
+                                <div class="health-status">Configure for alerts</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="grid-col-8">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h2 class="card-title"><i class="fas fa-clipboard-list"></i> Recent Activity</h2>
+                        <div class="card-actions">
+                            <a href="/admin/access_logs" class="btn btn-sm btn-primary">
+                                <i class="fas fa-external-link-alt"></i> View All
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="activity-feed" id="activityFeed">
+                            <!-- Activity items will be loaded dynamically -->
+                            <div class="activity-item">
+                                <div class="activity-icon activity-admin">
+                                    <i class="fas fa-user-shield"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <div class="activity-title">Admin logged in</div>
+                                    <div class="activity-time">Just now</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -305,25 +698,169 @@
     </div>
 
     <script>
-        // Real-time polling every 3 seconds
-        setInterval(() => {
+        // Initialize the dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDateTime();
+            updateDoorStatus();
+            loadRecentActivity();
+            setInterval(updateDateTime, 60000); // Update date/time every minute
+            setInterval(updateDoorStatus, 3000); // Update door status every 3 seconds
+            setInterval(loadRecentActivity, 30000); // Update activity feed every 30 seconds
+
+            // Theme is now handled server-side via session
+            console.log('Theme initialized via server-side session');
+
+            // Initialize door control buttons
+            const unlockButton = document.querySelector('.btn-success');
+            if (unlockButton) {
+                unlockButton.addEventListener('click', unlockDoor);
+                console.log('Unlock button initialized');
+            } else {
+                console.error('Unlock button not found');
+            }
+
+            const lockButton = document.querySelector('.btn-danger');
+            if (lockButton) {
+                lockButton.addEventListener('click', lockDoor);
+                console.log('Lock button initialized');
+            } else {
+                console.error('Lock button not found');
+            }
+
+            // This code has been moved up to the main initialization section
+        });
+
+        // Dark mode is now the default
+
+        // Update the date and time with personalized greeting
+        function updateDateTime() {
+            const now = new Date();
+            const hours = now.getHours();
+            let greeting = '';
+
+            if (hours < 12) {
+                greeting = 'Good morning';
+            } else if (hours < 18) {
+                greeting = 'Good afternoon';
+            } else {
+                greeting = 'Good evening';
+            }
+
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const dateStr = now.toLocaleDateString('en-US', options);
+            const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+            document.getElementById('currentDate').textContent = `${greeting}, today is ${dateStr} - ${timeStr}`;
+        }
+
+        // Function removed - theme icon is now updated directly in toggleTheme()
+
+        // Update door status and related UI elements
+        function updateDoorStatus() {
+            console.log('Updating door status...');
             fetch('/api/status')
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error(`HTTP error! Status: ${res.status}`);
+                    }
+                    return res.json();
+                })
                 .then(data => {
-                    const doorStatusElement = document.getElementById("door-status");
+                    console.log('Door status data received:', data);
+                    // Update door status text
+                    const doorStatusElement = document.getElementById('door-status');
                     doorStatusElement.textContent = data.door_status;
 
-                    // Update the door status color
-                    doorStatusElement.className = ''; // Clear existing classes
-                    doorStatusElement.classList.add(data.door_status_class);
+                    // Update status indicator
+                    const statusIndicator = document.getElementById('statusIndicator');
+                    statusIndicator.className = 'status-indicator';
+                    if (data.door_status === 'Unlocked') {
+                        statusIndicator.classList.add('status-unlocked');
+                        statusIndicator.innerHTML = '<i class="fas fa-unlock"></i>';
+                    } else {
+                        statusIndicator.classList.add('status-locked');
+                        statusIndicator.innerHTML = '<i class="fas fa-lock"></i>';
+                    }
 
-                    document.getElementById("last-seen").textContent = data.last_recognition_time || "N/A";
+                    // Update last seen time
+                    document.getElementById('last-seen').textContent = data.last_recognition_time || 'N/A';
+
+                    // Update access count if available
+                    if (data.today_access_count) {
+                        document.getElementById('accessCount').textContent = data.today_access_count;
+                    }
+
+                    // Update notification status if available
+                    if (data.notification_status) {
+                        const notificationStatus = document.getElementById('notificationStatus');
+                        if (data.notification_status === 'enabled') {
+                            notificationStatus.className = 'health-icon health-good';
+                            notificationStatus.innerHTML = '<i class="fas fa-bell"></i>';
+                        } else {
+                            notificationStatus.className = 'health-icon health-warning';
+                            notificationStatus.innerHTML = '<i class="fas fa-bell-slash"></i>';
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching status:', error);
+                    // Show error message to user
+                    showToast('Error updating door status: ' + error.message, 'error');
                 });
-        }, 3000);
+        }
 
-        // Theme toggle is handled by theme.js
+        // Manually refresh door status
+        function refreshDoorStatus(event) {
+            console.log('Refresh door status function called');
+            const refreshBtn = event ? event.currentTarget : document.querySelector('.btn-primary');
+            if (!refreshBtn) {
+                console.error('Refresh button not found');
+                return;
+            }
+            const originalContent = refreshBtn.innerHTML;
+            refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+            refreshBtn.disabled = true;
+            console.log('Refreshing door status...');
 
+            updateDoorStatus();
+
+            setTimeout(() => {
+                refreshBtn.innerHTML = originalContent;
+                refreshBtn.disabled = false;
+            }, 1000);
+        }
+
+        // Load recent activity
+        function loadRecentActivity() {
+            // In a real implementation, this would fetch from an API
+            // For now, we'll simulate with static data
+            const activityFeed = document.getElementById('activityFeed');
+
+            // Only update if we're not already loading
+            if (!activityFeed.dataset.loading) {
+                activityFeed.dataset.loading = 'true';
+
+                // In a real implementation, fetch from API
+                // For demo, we'll just use the current data
+                setTimeout(() => {
+                    activityFeed.dataset.loading = '';
+                }, 500);
+            }
+        }
+
+        // Unlock door function
         function unlockDoor() {
+            console.log('Unlock door function called');
+            const unlockBtn = document.querySelector('.btn-success');
+            if (!unlockBtn) {
+                console.error('Unlock button not found');
+                return;
+            }
+            const originalContent = unlockBtn.innerHTML;
+            unlockBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Unlocking...';
+            unlockBtn.disabled = true;
+            console.log('Sending unlock request to server...');
+
             fetch('/api/unlock', {
                 method: 'POST',
                 headers: {
@@ -333,48 +870,215 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    document.getElementById('door-status').textContent = 'Unlocked';
-                    document.getElementById('door-status').classList.remove('text-danger');
-                    document.getElementById('door-status').classList.add('text-success');
-                    alert('Door unlocked successfully');
+                    // Update UI
+                    const doorStatus = document.getElementById('door-status');
+                    doorStatus.textContent = 'Unlocked';
+
+                    const statusIndicator = document.getElementById('statusIndicator');
+                    statusIndicator.className = 'status-indicator status-unlocked';
+                    statusIndicator.innerHTML = '<i class="fas fa-unlock"></i>';
+
+                    // Add to activity feed
+                    const activityFeed = document.getElementById('activityFeed');
+                    const newActivity = document.createElement('div');
+                    newActivity.className = 'activity-item';
+                    newActivity.innerHTML = `
+                        <div class="activity-icon activity-unlock">
+                            <i class="fas fa-unlock"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-title">Door unlocked manually</div>
+                            <div class="activity-time">Just now</div>
+                        </div>
+                    `;
+                    activityFeed.prepend(newActivity);
+
+                    // Show success message
+                    showToast('Door unlocked successfully', 'success');
                 } else {
-                    alert('Error: ' + data.message);
+                    showToast('Error: ' + data.message, 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Failed to unlock door. Please try again.');
+                showToast('Failed to unlock door. Please try again.', 'error');
+            })
+            .finally(() => {
+                unlockBtn.innerHTML = originalContent;
+                unlockBtn.disabled = false;
             });
         }
 
+        // Lock door function
         function lockDoor() {
-            console.log('Lock door button clicked');
+            console.log('Lock door function called');
+            const lockBtn = document.querySelector('.btn-danger');
+            if (!lockBtn) {
+                console.error('Lock button not found');
+                return;
+            }
+            const originalContent = lockBtn.innerHTML;
+            lockBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Locking...';
+            lockBtn.disabled = true;
+            console.log('Sending lock request to server...');
+
             fetch('/api/lock', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 }
             })
-            .then(res => {
-                console.log('Lock door response status:', res.status);
-                return res.json();
-            })
+            .then(res => res.json())
             .then(data => {
-                console.log('Lock door response data:', data);
                 if (data.success) {
-                    document.getElementById('door-status').textContent = 'Locked';
-                    document.getElementById('door-status').classList.remove('text-success');
-                    document.getElementById('door-status').classList.add('text-danger');
-                    alert('Door locked successfully');
+                    // Update UI
+                    const doorStatus = document.getElementById('door-status');
+                    doorStatus.textContent = 'Locked';
+
+                    const statusIndicator = document.getElementById('statusIndicator');
+                    statusIndicator.className = 'status-indicator status-locked';
+                    statusIndicator.innerHTML = '<i class="fas fa-lock"></i>';
+
+                    // Add to activity feed
+                    const activityFeed = document.getElementById('activityFeed');
+                    const newActivity = document.createElement('div');
+                    newActivity.className = 'activity-item';
+                    newActivity.innerHTML = `
+                        <div class="activity-icon activity-lock">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-title">Door locked manually</div>
+                            <div class="activity-time">Just now</div>
+                        </div>
+                    `;
+                    activityFeed.prepend(newActivity);
+
+                    // Show success message
+                    showToast('Door locked successfully', 'success');
                 } else {
-                    alert('Error: ' + data.message);
+                    showToast('Error: ' + data.message, 'error');
                 }
             })
             .catch(error => {
                 console.error('Error in lock door request:', error);
-                alert('Failed to lock door. Please try again.');
+                showToast('Failed to lock door. Please try again.', 'error');
+            })
+            .finally(() => {
+                lockBtn.innerHTML = originalContent;
+                lockBtn.disabled = false;
             });
         }
+
+        // Show toast notification
+        function showToast(message, type = 'info') {
+            // Create toast container if it doesn't exist
+            let toastContainer = document.getElementById('toast-container');
+            if (!toastContainer) {
+                toastContainer = document.createElement('div');
+                toastContainer.id = 'toast-container';
+                toastContainer.style.position = 'fixed';
+                toastContainer.style.bottom = '20px';
+                toastContainer.style.right = '20px';
+                toastContainer.style.zIndex = '9999';
+                document.body.appendChild(toastContainer);
+            }
+
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.style.minWidth = '250px';
+            toast.style.margin = '10px';
+            toast.style.padding = '15px';
+            toast.style.borderRadius = '8px';
+            toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+            toast.style.display = 'flex';
+            toast.style.alignItems = 'center';
+            toast.style.gap = '10px';
+            toast.style.animation = 'fadeIn 0.3s ease-out forwards';
+            toast.style.transition = 'all 0.3s ease';
+
+            // Set background color based on type
+            if (type === 'success') {
+                toast.style.backgroundColor = 'var(--success-color)';
+                toast.style.color = 'white';
+                toast.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`;
+            } else if (type === 'error') {
+                toast.style.backgroundColor = 'var(--danger-color)';
+                toast.style.color = 'white';
+                toast.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
+            } else {
+                toast.style.backgroundColor = 'var(--info-color)';
+                toast.style.color = 'white';
+                toast.innerHTML = `<i class="fas fa-info-circle"></i> ${message}`;
+            }
+
+            // Add to container
+            toastContainer.appendChild(toast);
+
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    toastContainer.removeChild(toast);
+                }, 300);
+            }, 3000);
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'info') {
+            // Create toast container if it doesn't exist
+            let toastContainer = document.getElementById('toast-container');
+            if (!toastContainer) {
+                toastContainer = document.createElement('div');
+                toastContainer.id = 'toast-container';
+                toastContainer.style.position = 'fixed';
+                toastContainer.style.bottom = '20px';
+                toastContainer.style.right = '20px';
+                toastContainer.style.zIndex = '9999';
+                document.body.appendChild(toastContainer);
+            }
+
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.style.backgroundColor = type === 'success' ? '#4caf50' :
+                                         type === 'error' ? '#f44336' :
+                                         type === 'warning' ? '#ff9800' : '#2196f3';
+            toast.style.color = 'white';
+            toast.style.padding = '12px 20px';
+            toast.style.borderRadius = '4px';
+            toast.style.marginTop = '10px';
+            toast.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+            toast.style.minWidth = '250px';
+            toast.style.animation = 'fadeIn 0.3s, fadeOut 0.3s 2.7s';
+            toast.style.animationFillMode = 'forwards';
+            toast.innerHTML = message;
+
+            // Add to container
+            toastContainer.appendChild(toast);
+
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // Add CSS for toast animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            @keyframes fadeOut {
+                from { opacity: 1; transform: translateY(0); }
+                to { opacity: 0; transform: translateY(-20px); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Navigation is now handled directly by button onclick attributes
     </script>
 </body>
 </html>

@@ -59,7 +59,7 @@ def load_and_preprocess_images(data_dir, face_classifier, valid_extensions):
 
     if not faces:
         raise ValueError("❌ No valid face images were found for training.")
-    
+
     return np.array(faces), np.array(labels), label_map
 
 def train_and_save_model(faces, labels, label_map, model_path='face_recognizer_model.xml', map_path='label_map.pkl'):
@@ -96,7 +96,11 @@ def train_face_recognizer():
     if not os.path.exists(face_cascade_path):
         raise FileNotFoundError(f"❌ Haar cascade not found at {face_cascade_path}")
 
-    face_classifier = cv2.CascadeClassifier(face_cascade_path)
+    # Initialize the face classifier with explicit empty check
+    face_classifier = cv2.CascadeClassifier()
+    if not face_classifier.load(face_cascade_path):
+        raise RuntimeError(f"❌ Failed to load Haar cascade from {face_cascade_path}")
+
     valid_extensions = ['.jpg', '.jpeg', '.png']
 
     faces, labels, label_map = load_and_preprocess_images(data_dir, face_classifier, valid_extensions)

@@ -8,6 +8,8 @@ import shutil
 import subprocess
 import sys
 import json
+import logging
+from logging.handlers import RotatingFileHandler
 from flask import Flask, render_template, request, redirect, url_for, Response, jsonify, session, send_from_directory, flash
 from utils import ArduinoManager, trigger_unlock, enhance_image, find_arduino_port, try_all_available_ports
 from serial.tools import list_ports
@@ -16,21 +18,32 @@ from access_log import log_access, get_logs, clean_failed_access_logs
 from clear_logs import clear_logs_directly
 from telegram_notifier import get_notifier
 from voice_module import get_voice_module
+from dotenv import load_dotenv
+
+# Configure logging
+logging.basicConfig(
+    handlers=[RotatingFileHandler('app.log', maxBytes=100000, backupCount=3)],
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s: %(message)s'
+)
+logger = logging.getLogger(__name__)
 door_status = "Locked"
 last_recognition_time = 0
 door_open_duration = 10  # seconds
 last_door_action = None
 
 
+load_dotenv()
+
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-here'  # Change this to a secure secret key in production
+app.secret_key = os.getenv('SECRET_KEY')
 
 # No setup needed for clear logs routes
 
 # Debug available COM ports
-print("Available COM ports:")
+logger.info("Available COM ports:")
 for port in list_ports.comports():
-    print(f"- {port.device}: {port.description}")
+    logger.info(f"- {port.device}: {port.description}")
 
 # Configuration
 base_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "userimage")
@@ -40,7 +53,20 @@ camera_index = 1  # Camera is on index 1
 
 # Global variables
 camera = None
-face_classifier = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+
+# Initialize face classifier with proper error checking
+face_cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
+if not os.path.exists(face_cascade_path):
+    logger.error(f"Haar cascade file not found at {face_cascade_path}")
+    face_classifier = None
+else:
+    face_classifier = cv2.CascadeClassifier()
+    if not face_classifier.load(face_cascade_path):
+        logger.error(f"Failed to load Haar cascade from {face_cascade_path}")
+        face_classifier = None
+    else:
+        logger.info("Face classifier loaded successfully")
+
 door_status = "Locked"
 last_face_check = 0
 face_check_interval = 0.2  # seconds - more responsive but still efficient
@@ -54,21 +80,21 @@ min_confidence_to_log = 150  # Only log failed attempts with confidence below th
 arduino_manager = None
 try:
     arduino_manager = ArduinoManager(arduino_port, arduino_baudrate)
-    print(f"🔌 Arduino manager initialized with port {arduino_port}")
+    logger.info(f"Arduino manager initialized with port {arduino_port}")
     # Test the connection by sending a test command
     arduino_manager.write(b't')  # test command
     arduino_manager.flush()
     time.sleep(0.5)
     response = arduino_manager.read(size=10)
     if response:
-        print(f"✅ Arduino responded: {response}")
+        logger.info(f"Arduino responded: {response}")
     else:
-        print("⚠️ No response from Arduino, but connection established")
+        logger.warning("No response from Arduino, but connection established")
 except Exception as e:
-    print(f"Error initializing Arduino manager: {e}")
+    logger.error(f"Error initializing Arduino manager: {e}")
     available_ports = find_arduino_port()
     if available_ports:
-        print(f"Trying alternative ports: {available_ports}")
+        logger.info(f"Trying alternative ports: {available_ports}")
         for port in available_ports:
             try:
                 arduino_manager = ArduinoManager(port, arduino_baudrate)
@@ -77,11 +103,11 @@ except Exception as e:
                 time.sleep(0.5)
                 response = arduino_manager.read(size=10)
                 if response:
-                    print(f"✅ Arduino responded on port {port}: {response}")
+                    logger.info(f"Arduino responded on port {port}: {response}")
                     arduino_port = port
                     break
             except Exception as e:
-                print(f"Failed on port {port}: {e}")
+                logger.error(f"Failed on port {port}: {e}")
                 continue
 
 # Function to send command to Arduino with verification
@@ -216,6 +242,8 @@ def ensure_door_unlock():
         print(f"⚠️ Unlock on alternative ports failed: {e}")
     return False
 
+import numpy as np
+
 # Streaming and recognition
 def generate_frames():
     global camera, door_status, last_face_check, model, label_map
@@ -223,11 +251,23 @@ def generate_frames():
 
     try:
         if camera is None or not camera.isOpened():
-            print("📸 Initializing camera...")
+            print(f"📸 Initializing camera with index {camera_index}...")
             camera = cv2.VideoCapture(camera_index, cv2.CAP_DSHOW)
+
+            # Set camera properties for better performance
+            camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+            camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+            camera.set(cv2.CAP_PROP_FPS, 30)
+            camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+            camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+            camera.set(cv2.CAP_PROP_AUTOFOCUS, 1)
             if not camera.isOpened():
                 print("❌ Failed to open camera")
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' +
+                       b'Failed to open camera' + b'\r\n')
                 return
+
             # Optimize camera settings for better performance
             camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
             camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
@@ -235,12 +275,30 @@ def generate_frames():
             camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # Minimize buffer to reduce latency
             camera.set(cv2.CAP_PROP_AUTOFOCUS, 0)  # Disable autofocus for faster frames
             camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))  # Use MJPG format for better performance
+            print("✅ Camera initialized successfully")
+
+        # Frame counter for skipping frames
+        frame_count = 0
 
         while True:
+            # Read frame with proper error handling
             success, frame = camera.read()
-            if not success:
+            if not success or frame is None or frame.size == 0:
+                print("⚠️ Empty frame received, retrying...")
+                # Yield a placeholder frame instead of failing
+                placeholder = np.zeros((480, 640, 3), dtype=np.uint8)
+                cv2.putText(placeholder, "Camera reconnecting...", (50, 240),
+                           cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+                _, buffer = cv2.imencode('.jpg', placeholder)
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+                # Try to reinitialize camera if we get too many empty frames
                 time.sleep(0.1)
                 continue
+
+            # Process only every 2nd frame for better performance
+            process_this_frame = (frame_count % 2 == 0)
+            frame_count += 1
 
             timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
             cv2.putText(frame, timestamp, (10, frame.shape[0] - 10),
@@ -267,104 +325,130 @@ def generate_frames():
 
             # Check if model and label_map are valid
             if model is None or not label_map:
-                cv2.putText(frame, "No users registered", (30, 50),
-                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-                _, buffer = cv2.imencode('.jpg', frame)
+                # Optimize JPEG encoding for streaming
+                encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 85]
+                _, buffer = cv2.imencode('.jpg', frame, encode_param)
                 yield (b'--frame\r\n'
                        b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
                 continue
 
-            # Only perform face detection at specified intervals
-            if (current_time - last_face_check) >= face_check_interval:
+            # Only perform face detection at specified intervals and on selected frames
+            if (current_time - last_face_check) >= face_check_interval and process_this_frame:
                 last_face_check = current_time
-                # Use fast mode for real-time processing
-                enhanced = enhance_image(frame, fast_mode=True)
 
-                # Optimize face detection parameters
-                faces = face_classifier.detectMultiScale(
-                    enhanced,
-                    scaleFactor=1.1,  # Slightly faster detection
-                    minNeighbors=4,   # More reliable detection
-                    minSize=(50, 50), # Larger minimum face size for better performance
-                    flags=cv2.CASCADE_SCALE_IMAGE
-                )
+                try:
+                    # Downscale image for faster processing - with explicit size check
+                    if frame.size > 0:
+                        small_frame = cv2.resize(frame, (0, 0), fx=0.5, fy=0.5)
+
+                        # Use fast mode for real-time processing
+                        enhanced = enhance_image(small_frame, fast_mode=True)
+
+                        # Convert to grayscale for more reliable face detection
+                        gray = cv2.cvtColor(enhanced, cv2.COLOR_BGR2GRAY) if len(enhanced.shape) > 2 else enhanced
+
+                        # Optimize face detection parameters with error handling
+                        faces = face_classifier.detectMultiScale(
+                            gray,
+                            scaleFactor=1.1,  # Reduced for better detection at the cost of speed
+                            minNeighbors=3,   # Reduced to detect more faces
+                            minSize=(30, 30), # Minimum face size to detect
+                            flags=cv2.CASCADE_SCALE_IMAGE
+                        )
+                        print(f"Detected {len(faces)} faces")
+                    else:
+                        faces = []
+                except Exception as e:
+                    print(f"Face detection error: {e}")
+                    faces = []
 
                 if len(faces) > 0:
-                    faces = sorted(faces, key=lambda x: x[2] * x[3], reverse=True)
+                    # Scale face locations back up
+                    scaled_faces = []
+                    for (x, y, w, h) in faces:
+                        x *= 2
+                        y *= 2
+                        w *= 2
+                        h *= 2
+                        scaled_faces.append((x, y, w, h))
+
+                    faces = sorted(scaled_faces, key=lambda x: x[2] * x[3], reverse=True)
                     x, y, w, h = faces[0]
                     cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-                    # Extract and prepare face for recognition
-                    face = enhanced[y:y+h, x:x+w]
-                    face = cv2.resize(face, (200, 200))
-
-                    # Apply histogram equalization for better recognition
-                    face = cv2.equalizeHist(face)
 
                     try:
-                        # Perform face recognition
-                        label, confidence = model.predict(face)
-                        name = label_map.get(label, "Unknown")
+                        # Extract and prepare face for recognition
+                        face_roi = frame[y:y+h, x:x+w]
+                        if face_roi.size > 0:  # Check if ROI is valid
+                            face = cv2.resize(face_roi, (200, 200))
+                            face_gray = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
+                            face_gray = cv2.equalizeHist(face_gray)
 
-                        # Adjust confidence threshold for better accuracy
-                        if confidence < 100 and name != "Unknown":
-                            cv2.putText(frame, f"Welcome {name}", (x, y-10),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+                            # Perform face recognition
+                            label, confidence = model.predict(face_gray)
+                            name = label_map.get(label, "Unknown")
 
-                            last_recognition_time = current_time
+                            # Adjust confidence threshold for better accuracy (increased from 100 to 120)
+                            print(f"Face recognition result: {name} with confidence {confidence}")
+                            if confidence < 120 and name != "Unknown":
+                                cv2.putText(frame, f"Welcome {name}", (x, y-10),
+                                            cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
 
-                            # 🔓 Only send unlock if it's not already sent
-                            if door_status != "Unlocked" or last_door_action != "unlock":
-                                if send_arduino_command(b'u'):
-                                    door_status = "Unlocked"
-                                    last_door_action = "unlock"
-                                    print("✅ Door unlocked successfully")
-                                    # Log successful access
-                                    log_access(name, True, "Face Recognition")
+                                last_recognition_time = current_time
 
-                                    # Play welcome voice message
+                                # 🔓 Only send unlock if it's not already sent
+                                if door_status != "Unlocked" or last_door_action != "unlock":
+                                    if send_arduino_command(b'u'):
+                                        door_status = "Unlocked"
+                                        last_door_action = "unlock"
+                                        print("✅ Door unlocked successfully")
+                                        # Log successful access
+                                        log_access(name, True, "Face Recognition")
+
+                                        # Play welcome voice message
+                                        try:
+                                            voice = get_voice_module()
+                                            voice.welcome_user(name)
+                                        except Exception as e:
+                                            print(f"⚠️ Voice module error: {e}")
+
+                                        # Send Telegram notification
+                                        try:
+                                            notifier = get_notifier()
+                                            notifier.send_door_unlock_notification(name, "Face Recognition")
+                                        except Exception as e:
+                                            print(f"⚠️ Telegram notification error: {e}")
+                            else:
+                                cv2.putText(frame, "Access Denied", (x, y-10),
+                                            cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+
+                                # Only log failed access attempts that meet certain criteria
+                                global last_failed_log_time, failed_log_cooldown, min_confidence_to_log
+                                current_time = time.time()
+
+                                # Log only if:
+                                # 1. The confidence is below our threshold (likely a real person, not random objects)
+                                # 2. We haven't logged a failure recently (cooldown period)
+                                # 3. The name is not completely unknown (some recognition happened)
+                                if (confidence < min_confidence_to_log and
+                                    current_time - last_failed_log_time > failed_log_cooldown and
+                                    (name != "Unknown" or confidence < 120)):
+
+                                    # Log the failed access attempt
+                                    log_access(name if name != "Unknown" else "Unknown Person", False, "Face Recognition")
+                                    last_failed_log_time = current_time
+                                    print(f"🔴 Access denied logged: {name} (Confidence: {confidence})")
+
+                                    # Play access denied voice message
                                     try:
                                         voice = get_voice_module()
-                                        voice.welcome_user(name)
+                                        voice.access_denied()
                                     except Exception as e:
                                         print(f"⚠️ Voice module error: {e}")
-
-                                    # Send Telegram notification
-                                    try:
-                                        notifier = get_notifier()
-                                        notifier.send_door_unlock_notification(name, "Face Recognition")
-                                    except Exception as e:
-                                        print(f"⚠️ Telegram notification error: {e}")
-                        else:
-                            cv2.putText(frame, "Access Denied", (x, y-10),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
-
-                            # Only log failed access attempts that meet certain criteria
-                            global last_failed_log_time, failed_log_cooldown, min_confidence_to_log
-                            current_time = time.time()
-
-                            # Log only if:
-                            # 1. The confidence is below our threshold (likely a real person, not random objects)
-                            # 2. We haven't logged a failure recently (cooldown period)
-                            # 3. The name is not completely unknown (some recognition happened)
-                            if (confidence < min_confidence_to_log and
-                                current_time - last_failed_log_time > failed_log_cooldown and
-                                (name != "Unknown" or confidence < 120)):
-
-                                # Log the failed access attempt
-                                log_access(name if name != "Unknown" else "Unknown Person", False, "Face Recognition")
-                                last_failed_log_time = current_time
-                                print(f"🔴 Access denied logged: {name} (Confidence: {confidence})")
-
-                                # Play access denied voice message
-                                try:
-                                    voice = get_voice_module()
-                                    voice.access_denied()
-                                except Exception as e:
-                                    print(f"⚠️ Voice module error: {e}")
                     except Exception as e:
+                        print(f"⚠️ Face recognition error: {e}")
                         cv2.putText(frame, "Recognition Error", (30, 50),
                                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-                        print(f"⚠️ Face recognition error: {e}")
 
             # 🔒 Auto-lock if user has left for 10 seconds
             if door_status == "Unlocked" and (time.time() - last_recognition_time > door_open_duration):
@@ -399,6 +483,13 @@ def generate_frames():
         if camera:
             camera.release()
         camera = None
+        # Provide a placeholder frame when an error occurs
+        placeholder = np.zeros((480, 640, 3), dtype=np.uint8)
+        cv2.putText(placeholder, "Camera Error", (180, 240),
+                   cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+        _, buffer = cv2.imencode('.jpg', placeholder)
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
 
 # Routes
 @app.route('/')
@@ -424,8 +515,17 @@ def add_user_form():
 
 @app.route('/add_user_process', methods=['POST'])
 def add_user_process():
-    global camera, model, label_map
+    global camera, model, label_map, face_classifier
     try:
+        # Check if face classifier is properly initialized
+        if face_classifier is None:
+            print("❌ Face classifier not initialized. Attempting to reload...")
+            # Try to reload the classifier
+            face_cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
+            face_classifier = cv2.CascadeClassifier()
+            if not face_classifier.load(face_cascade_path):
+                return jsonify({'success': False, 'message': 'Face detection system not available. Please restart the application.'}), 500
+
         user_name = request.form.get('username').strip()
         if not user_name:
             return jsonify({'success': False, 'message': 'Username is required'}), 400
@@ -459,9 +559,25 @@ def add_user_process():
 
             # Use full enhancement mode for better quality during user registration
             enhanced = enhance_image(frame, fast_mode=False)
-            faces = face_classifier.detectMultiScale(enhanced, scaleFactor=1.05, minNeighbors=4, minSize=(50, 50))
 
-            if len(faces) == 0:
+            # Convert to grayscale for more reliable face detection
+            gray = cv2.cvtColor(enhanced, cv2.COLOR_BGR2GRAY) if len(enhanced.shape) > 2 else enhanced
+
+            # Use more conservative parameters for face detection to avoid the cascade error
+            try:
+                faces = face_classifier.detectMultiScale(
+                    gray,
+                    scaleFactor=1.1,     # Less aggressive scaling
+                    minNeighbors=5,      # More strict filtering
+                    minSize=(80, 80),    # Larger minimum face size
+                    flags=cv2.CASCADE_SCALE_IMAGE
+                )
+
+                if len(faces) == 0:
+                    failed += 1
+                    continue
+            except Exception as e:
+                print(f"Face detection error: {e}")
                 failed += 1
                 continue
 
@@ -754,6 +870,8 @@ def admin_dashboard():
     except Exception as e:
         print(f"Error rendering admin dashboard: {e}")
         return redirect('/')
+
+# Theme toggle removed - dark mode is now the default
 
 @app.route('/admin/access_logs')
 def access_logs():

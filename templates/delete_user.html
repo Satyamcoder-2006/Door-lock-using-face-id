@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Users - Face Recognition Door Lock</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='modern-user.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="{{ url_for('static', filename='theme.js') }}"></script>
@@ -272,20 +273,36 @@
         }
     </style>
 </head>
-<body>
+<body class="dark-mode">
     <!-- Loading overlay -->
-    <div id="loadingOverlay" class="overlay">
-        <div class="spinner"></div>
-        <div id="overlayMessage" class="overlay-message">Deleting user and retraining model...</div>
+    <div id="loadingOverlay" class="overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); z-index: 9999; justify-content: center; align-items: center; flex-direction: column;">
+        <div class="spinner" style="border: 5px solid #f3f3f3; border-top: 5px solid #4361ee; border-radius: 50%; width: 50px; height: 50px; animation: spin 2s linear infinite; margin-bottom: 20px;"></div>
+        <div id="overlayMessage" class="overlay-message" style="color: white; font-size: 18px; text-align: center; max-width: 80%;">Deleting user and retraining model...</div>
     </div>
 
-    <div class="container">
-        <header>
-            <h1><i class="fas fa-users-gear"></i> Manage Users</h1>
-            <div class="theme-toggle"><i class="fas fa-moon"></i> Dark Mode</div>
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+
+    <div class="container" style="background-color: #121212;">
+        <header style="background: #121212; border-color: rgba(255,255,255,0.1); position: relative; overflow: hidden;">
+            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg, #4361ee, #6c5ce7, #4361ee);"></div>
+            <h1 style="display: flex; align-items: center; gap: 15px;">
+                <div style="width: 45px; height: 45px; background: linear-gradient(135deg, #4361ee, #6c5ce7); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3);">
+                    <i class="fas fa-users-gear" style="font-size: 1.5rem;"></i>
+                </div>
+                <span style="display: inline-block; margin-top: 5px;">Manage Users</span>
+            </h1>
             <div class="header-buttons">
-                <a href="{{ url_for('admin_dashboard') }}" class="btn secondary"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
-                <a href="{{ url_for('index') }}" class="btn primary"><i class="fas fa-home"></i> Back to Homepage</a>
+                <a href="{{ url_for('admin_dashboard') }}" class="btn secondary" style="background: rgba(255,255,255,0.1); border: none; display: flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 10px; transition: all 0.3s ease;">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+                <a href="{{ url_for('index') }}" class="btn primary" style="background: linear-gradient(135deg, #4361ee, #3a56d4); border: none; display: flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 10px; box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3); transition: all 0.3s ease;">
+                    <i class="fas fa-home"></i> Back to Homepage
+                </a>
             </div>
         </header>
 
@@ -300,54 +317,52 @@
                 {% endif %}
             {% endwith %}
 
-            <div class="user-management">
-                <div class="user-management-header">
-                    <h2><i class="fas fa-users"></i> Registered Users <span class="user-count">{{ users|length }}</span></h2>
-                    <div class="header-actions">
-                        <a href="{{ url_for('add_user_form') }}" class="btn primary"><i class="fas fa-user-plus"></i> Add New User</a>
+            <div class="modern-user-management">
+                <div class="modern-user-header">
+                    <div class="modern-user-title">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <i class="fas fa-users"></i>
+                            <span>Registered Users</span>
+                            <div class="user-count-badge">{{ users|length }}</div>
+                        </div>
                     </div>
+                    <a href="{{ url_for('add_user_form') }}" class="add-user-btn">
+                        <i class="fas fa-user-plus"></i> Add New User
+                    </a>
                 </div>
 
                 {% if users %}
-                    <div class="user-list">
+                    <div class="modern-user-grid">
                         {% for user in users %}
-                            <div class="user-card">
-                                <div class="user-card-header">
-                                    <div class="user-avatar">
+                            <div class="modern-user-card">
+                                <div class="modern-user-info">
+                                    <div class="modern-avatar">
                                         {{ user.name[0]|upper }}
                                     </div>
-                                    <div class="user-info">
-                                        <h3>{{ user.name }}</h3>
-                                        <div class="user-meta">
+                                    <div class="modern-user-details">
+                                        <div class="modern-user-name">{{ user.name }}</div>
+                                        <div class="modern-user-status">
                                             <i class="fas fa-shield-alt"></i> Authorized User
                                         </div>
                                     </div>
+                                    <div class="modern-user-stats">
+                                        <div class="modern-stat-value">{{ user.images|default(100) }}</div>
+                                        <div class="modern-stat-label">Face Images</div>
+                                    </div>
                                 </div>
-                                <div class="user-card-body">
-                                    <div class="user-stats">
-                                        <div class="stat-item">
-                                            <div class="stat-value">{{ user.images|default(100) }}</div>
-                                            <div class="stat-label">Face Images</div>
-                                        </div>
-                                        <div class="stat-item">
-                                            <div class="stat-value">{{ user.last_access|default('2 days ago') }}</div>
-                                            <div class="stat-label">Last Access</div>
-                                        </div>
-                                    </div>
-                                    <div class="user-actions">
-                                        <button class="btn delete-btn" onclick="deleteUser('{{ user.name }}')" id="deleteBtn-{{ user.name }}">
-                                            <i class="fas fa-trash-alt"></i> Delete User
-                                        </button>
-                                    </div>
+                                <div style="text-align: center; padding: 0 20px 20px 20px;">
+                                    <button type="button" class="delete-user-btn" onclick="deleteUser('{{ user.name }}')" id="deleteBtn-{{ user.name }}">
+                                        <i class="fas fa-trash-alt"></i> Delete
+                                    </button>
                                 </div>
                             </div>
                         {% endfor %}
                     </div>
                 {% else %}
-                    <div class="no-users">
+                    <div class="modern-empty-state">
                         <i class="fas fa-user-slash"></i>
                         <p>No users registered yet.</p>
-                        <a href="{{ url_for('add_user_form') }}" class="btn primary" style="margin-top: 15px;">
+                        <a href="{{ url_for('add_user_form') }}" class="add-user-btn">
                             <i class="fas fa-user-plus"></i> Add Your First User
                         </a>
                     </div>
@@ -356,8 +371,14 @@
         </div>
     </div>
 
-    <footer>
-        <p><i class="fas fa-copyright"></i> Face Recognition Door Lock System 2025</p>
+    <footer style="background: #121212; border-color: rgba(255,255,255,0.1); position: relative; overflow: hidden;">
+        <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: 2px; background: linear-gradient(90deg, #4361ee, #6c5ce7, #4361ee);"></div>
+        <p style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+            <span style="display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: linear-gradient(135deg, #4361ee, #6c5ce7); border-radius: 50%;">
+                <i class="fas fa-shield-alt" style="font-size: 0.9rem;"></i>
+            </span>
+            Face Recognition Door Lock System 2025
+        </p>
     </footer>
 
     <script>
@@ -371,7 +392,7 @@
             confirmDialog.style.justifyContent = 'center';
 
             const dialogContent = document.createElement('div');
-            dialogContent.style.backgroundColor = 'var(--card-bg)';
+            dialogContent.style.backgroundColor = '#1e1e1e';
             dialogContent.style.borderRadius = '12px';
             dialogContent.style.padding = '25px';
             dialogContent.style.width = '90%';
@@ -432,7 +453,7 @@
                 overlay.style.display = 'flex';
 
                 // Add status message below the button as well
-                const userCard = deleteBtn.closest('.user-card');
+                const userCard = deleteBtn.closest('.modern-user-card');
                 userCard.style.position = 'relative';
 
                 const processingOverlay = document.createElement('div');
@@ -454,8 +475,11 @@
                 fetch(`/delete_user/${username}`, {
                     method: 'POST',
                     headers: {
-                        'Accept': 'application/json'
-                    }
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin'
                 })
                 .then(response => {
                     if (!response.ok) {

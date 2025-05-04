@@ -7,27 +7,41 @@
     <title>Face Recognition Door Lock</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="{{ url_for('static', filename='theme.js') }}"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
 </head>
-<body>
+<body class="dark-mode">
     <div class="container">
         <header>
-            <h1><i class="fas fa-lock"></i> Face Recognition Door Lock System</h1>
-            <div class="theme-toggle"><i class="fas fa-moon"></i> Dark Mode</div>
-            <p class="system-status">
-                <i class="fas fa-door-closed"></i>
-                Door Status:
-                <span id="doorStatus" class="{{ 'unlocked' if door_status == 'Unlocked' else 'locked' }}">
-                    <i class="fas {{ 'fa-unlock' if door_status == 'Unlocked' else 'fa-lock' }}"></i>
-                    {{ door_status }}
-                </span>
-            </p>
+            <h1><i class="fas fa-shield-alt"></i> Face Recognition Door Lock System</h1>
+            <div class="header-controls">
+                <div class="system-status">
+                    <i class="fas fa-door-closed"></i>
+                    Door Status:
+                    <span id="doorStatus" class="{{ 'unlocked' if door_status == 'Unlocked' else 'locked' }}">
+                        <div class="status-indicator {{ 'status-unlocked' if door_status == 'Unlocked' else 'status-locked' }}">
+                            <i class="fas {{ 'fa-unlock' if door_status == 'Unlocked' else 'fa-lock' }}"></i>
+                        </div>
+                        {{ door_status }}
+                    </span>
+                </div>
+
+            </div>
         </header>
 
         <div class="main-content">
             <div class="video-container">
                 <h2><i class="fas fa-video"></i> Camera Feed</h2>
-                <img src="{{ url_for('video_feed') }}" alt="Video Feed">
+                <div class="video-feed-container">
+                    <img src="{{ url_for('video_feed') }}" alt="Video Feed">
+                    <div class="video-overlay">
+                        <div class="video-status" id="videoStatus">
+                            <i class="fas fa-circle" style="color: #4caf50;"></i>
+                            <span>Live Feed</span>
+                        </div>
+                        <div class="video-timestamp" id="timestamp"></div>
+                    </div>
+                </div>
             </div>
 
             <div class="controls">
@@ -37,7 +51,7 @@
                         <a href="/admin/dashboard" class="btn primary">
                             <i class="fas fa-tachometer-alt"></i> Admin Dashboard
                         </a>
-                        <a href="{{ url_for('add_user_form') }}" class="btn primary">
+                        <a href="/add_user" class="btn primary">
                             <i class="fas fa-user-plus"></i> Add New User
                         </a>
                         <a href="{{ url_for('admin_logout') }}" class="btn secondary">
@@ -48,67 +62,160 @@
                             <i class="fas fa-sign-in-alt"></i> Admin Login
                         </a>
                     {% endif %}
-                    <p class="info-text">
-                        <i class="fas fa-info-circle"></i>
-                        Face verification is automatic. Please look at the camera.
-                    </p>
                 </div>
+                <p class="info-text">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Face verification is automatic. Please look at the camera for access.</span>
+                </p>
             </div>
         </div>
 
         <div id="user-management" class="user-management">
             <h2><i class="fas fa-users"></i> Registered Users</h2>
             {% if session.get('admin_logged_in') %}
+                <div class="user-management-controls">
+                    <a href="/add_user" class="btn primary">
+                        <i class="fas fa-user-plus"></i> Add New User
+                    </a>
+                    <a href="/delete_user" class="btn secondary">
+                        <i class="fas fa-user-minus"></i> Manage Users
+                    </a>
+                </div>
                 <p class="info-text">
                     <i class="fas fa-info-circle"></i>
-                    User management is available in the <a href="/admin/dashboard">Admin Dashboard</a>.
+                    <span>Full user management is available in the <a href="/admin/dashboard">Admin Dashboard</a>.</span>
                 </p>
             {% else %}
                 <p class="info-text">
                     <i class="fas fa-info-circle"></i>
-                    User management is restricted to administrators. Please <a href="{{ url_for('admin_login') }}">login</a> to manage users.
+                    <span>User management is restricted to administrators. Please <a href="{{ url_for('admin_login') }}">login</a> to manage users.</span>
                 </p>
             {% endif %}
             {% if users %}
                 <div class="user-list">
                     {% for user in users %}
-                        <div class="user-card">
+                        <div class="user-card animate-fadeIn" style="animation-delay: {{ loop.index0 * 0.1 }}s;">
                             <div class="user-info">
-                                <h3><i class="fas fa-user"></i> {{ user.name }}</h3>
+                                <div class="user-avatar">{{ user.name[0] | upper }}</div>
+                                <div class="user-details">
+                                    <h3>{{ user.name }}</h3>
+                                    <div class="user-status active">
+                                        <i class="fas fa-check-circle"></i> Authorized
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     {% endfor %}
                 </div>
             {% else %}
-                <p class="no-users">
+                <div class="no-users">
                     <i class="fas fa-user-slash"></i>
-                    No users registered yet.
-                </p>
+                    <p>No users registered yet. Login as admin to add users.</p>
+                </div>
             {% endif %}
         </div>
     </div>
 
     <footer>
-        <p><i class="fas fa-copyright"></i> Face Recognition Door Lock System 2025</p>
+        <p><i class="fas fa-shield-alt"></i> Face Recognition Door Lock System 2025</p>
     </footer>
 
+    <div id="toast-container" class="toast-container"></div>
+
     <script>
-        // Auto-refresh door status
-        setInterval(function() {
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Dark mode is now the default
+
+            // Start the live timestamp
+            updateTimestamp();
+            setInterval(updateTimestamp, 1000);
+
+            // Start door status polling
+            updateDoorStatus();
+            setInterval(updateDoorStatus, 1000);
+        });
+
+
+
+        // Update the timestamp on the video feed
+        function updateTimestamp() {
+            const now = new Date();
+            const options = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
+            document.getElementById('timestamp').textContent = now.toLocaleTimeString('en-US', options);
+        }
+
+        // Update door status
+        function updateDoorStatus() {
             fetch(window.location.href)
                 .then(response => response.text())
                 .then(html => {
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(html, 'text/html');
-                    const newStatus = doc.getElementById('doorStatus').textContent.trim();
+                    const newStatusElement = doc.getElementById('doorStatus');
+                    const newStatus = newStatusElement.textContent.trim();
                     const statusSpan = document.getElementById('doorStatus');
-                    const icon = statusSpan.querySelector('i');
+                    const statusIndicator = statusSpan.querySelector('.status-indicator');
+                    const icon = statusIndicator.querySelector('i');
 
-                    statusSpan.textContent = newStatus;
-                    statusSpan.className = newStatus === 'Unlocked' ? 'unlocked' : 'locked';
-                    icon.className = newStatus === 'Unlocked' ? 'fas fa-unlock' : 'fas fa-lock';
+                    // Only update if status has changed
+                    if (statusSpan.textContent.trim() !== newStatus) {
+                        // Update status text
+                        statusSpan.textContent = newStatus;
+
+                        // Update status indicator
+                        statusIndicator.className = 'status-indicator';
+                        if (newStatus === 'Unlocked') {
+                            statusIndicator.classList.add('status-unlocked');
+                            icon.className = 'fas fa-unlock';
+                            showToast('Door has been unlocked', 'success');
+                        } else {
+                            statusIndicator.classList.add('status-locked');
+                            icon.className = 'fas fa-lock';
+                            showToast('Door has been locked', 'error');
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating door status:', error);
                 });
-        }, 1000);
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'info') {
+            // Create toast container if it doesn't exist
+            let toastContainer = document.getElementById('toast-container');
+            if (!toastContainer) {
+                toastContainer = document.createElement('div');
+                toastContainer.id = 'toast-container';
+                toastContainer.className = 'toast-container';
+                document.body.appendChild(toastContainer);
+            }
+
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = 'toast toast-' + type;
+
+            // Set icon based on type
+            let icon = 'info-circle';
+            if (type === 'success') icon = 'check-circle';
+            if (type === 'error') icon = 'exclamation-circle';
+            if (type === 'warning') icon = 'exclamation-triangle';
+
+            toast.innerHTML = `<i class="fas fa-${icon}"></i> ${message}`;
+
+            // Add to container
+            toastContainer.appendChild(toast);
+
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    toastContainer.removeChild(toast);
+                }, 300);
+            }, 3000);
+        }
     </script>
 </body>
 </html>

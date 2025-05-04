@@ -151,15 +151,22 @@ def enhance_image(frame, fast_mode=True):
 
     # Fast mode for real-time processing
     if fast_mode:
-        # Apply only essential enhancements
+        # Apply essential enhancements for better face detection
         enhanced = _clahe.apply(gray)
-        # Skip bilateral filter in fast mode as it's computationally expensive
+        # Apply a light Gaussian blur to reduce noise
+        enhanced = cv2.GaussianBlur(enhanced, (3, 3), 0)
+        # Apply basic sharpening to enhance edges
+        enhanced = cv2.filter2D(enhanced, -1, _sharpening_kernel)
         return enhanced
 
     # Full enhancement for training and user addition
     enhanced = _clahe.apply(gray)
-    enhanced = cv2.bilateralFilter(enhanced, 5, 50, 50)  # Reduced parameters
+    # Apply bilateral filter to smooth while preserving edges
+    enhanced = cv2.bilateralFilter(enhanced, 5, 50, 50)
+    # Apply sharpening to enhance facial features
     enhanced = cv2.filter2D(enhanced, -1, _sharpening_kernel)
+    # Normalize the image to improve contrast
+    enhanced = cv2.normalize(enhanced, None, 0, 255, cv2.NORM_MINMAX)
 
     return enhanced
 

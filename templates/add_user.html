@@ -6,13 +6,14 @@
     <title>Add New User - Face Recognition Door Lock</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="{{ url_for('static', filename='theme.js') }}"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
 </head>
-<body>
+<body class="dark-mode">
     <div class="container">
         <header>
             <h1>Add New User</h1>
-            <div class="theme-toggle"><i class="fas fa-moon"></i> Dark Mode</div>
+
             <div class="header-buttons">
                 <a href="{{ url_for('admin_dashboard') }}" class="btn secondary"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
                 <a href="{{ url_for('index') }}" class="btn primary"><i class="fas fa-home"></i> Back to Homepage</a>
@@ -58,6 +59,11 @@
     </div>
 
     <script>
+        // Dark mode is now the default
+        document.addEventListener('DOMContentLoaded', function() {
+            document.body.classList.add('dark-mode');
+        });
+
         document.getElementById('startCapturing').addEventListener('click', function () {
             const usernameInput = document.getElementById('username');
             const username = usernameInput.value.trim();
