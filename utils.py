@@ -66,24 +66,39 @@ def try_all_available_ports(baudrate=9600):
             return arduino
     return None
 
-def connect_arduino(port='COM7', baudrate=9600):
+def connect_arduino(port='COM7', baudrate=9600, max_attempts=3, connection_timeout=1):
     global arduino, arduino_connected
     cleanup_arduino()
     print(f"🔌 Attempting to connect to {port}...")
 
-    for attempt in range(5):
+    for attempt in range(max_attempts):
         try:
+            # Use shorter timeouts to prevent hanging
             arduino = serial.Serial(
                 port=port,
                 baudrate=baudrate,
-                timeout=1,
-                write_timeout=1,
+                timeout=connection_timeout,
+                write_timeout=connection_timeout,
                 exclusive=True
             )
-            time.sleep(2)
+
+            # Shorter wait time
+            time.sleep(1)
+
+            # Send test command
             arduino.write(b't')
-            time.sleep(0.5)
-            response = arduino.read(size=1)
+            arduino.flush()
+
+            # Wait for response with timeout
+            start_time = time.time()
+            response = None
+
+            # Only wait up to connection_timeout seconds for a response
+            while time.time() - start_time < connection_timeout:
+                if arduino.in_waiting > 0:
+                    response = arduino.read(size=1)
+                    break
+                time.sleep(0.1)
 
             if response:
                 print(f"✅ Arduino connected successfully on {port}")
@@ -97,6 +112,14 @@ def connect_arduino(port='COM7', baudrate=9600):
             print(f"⚠️ Connection attempt {attempt + 1} failed: {str(e)}")
             cleanup_arduino()
             continue
+        except KeyboardInterrupt:
+            print("⚠️ Arduino connection interrupted by user")
+            cleanup_arduino()
+            raise
+        except Exception as e:
+            print(f"⚠️ Unexpected error during Arduino connection: {str(e)}")
+            cleanup_arduino()
+            continue
 
     print("❌ Could not establish connection to Arduino")
     arduino_connected = False
@@ -104,10 +127,18 @@ def connect_arduino(port='COM7', baudrate=9600):
 
 # ✅ FIXED: ArduinoManager now exposes write() and flush()
 class ArduinoManager:
-    def __init__(self, port='COM7', baudrate=9600):
+    def __init__(self, port='COM7', baudrate=9600, fail_silently=True):
         self.port = port
         self.baudrate = baudrate
-        self.ser = connect_arduino(self.port, self.baudrate)  # 💥 INIT RIGHT HERE
+        try:
+            self.ser = connect_arduino(self.port, self.baudrate, max_attempts=2, connection_timeout=1)
+            if not self.ser and not fail_silently:
+                raise Exception("Failed to connect to Arduino")
+        except Exception as e:
+            print(f"⚠️ ArduinoManager initialization error: {e}")
+            self.ser = None
+            if not fail_silently:
+                raise
 
     def __enter__(self):
         return self

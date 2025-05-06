@@ -77,54 +77,105 @@ last_failed_log_time = 0
 failed_log_cooldown = 5  # seconds between logging failed attempts
 min_confidence_to_log = 150  # Only log failed attempts with confidence below this threshold
 
-# Initialize Arduino manager
+# Initialize Arduino manager with improved error handling
 arduino_manager = None
 try:
-    arduino_manager = ArduinoManager(arduino_port, arduino_baudrate)
-    logger.info(f"Arduino manager initialized with port {arduino_port}")
-    # Test the connection by sending a test command
-    arduino_manager.write(b't')  # test command
-    arduino_manager.flush()
-    time.sleep(0.5)
-    response = arduino_manager.read(size=10)
-    if response:
-        logger.info(f"Arduino responded: {response}")
+    # Initialize with fail_silently=True to continue even if Arduino isn't connected
+    arduino_manager = ArduinoManager(arduino_port, arduino_baudrate, fail_silently=True)
+    logger.info(f"Arduino manager initialization attempt with port {arduino_port}")
+
+    # Check if connection was successful
+    if arduino_manager.ser:
+        # Test the connection by sending a test command
+        arduino_manager.write(b't')  # test command
+        arduino_manager.flush()
+
+        # Use a timeout for reading the response
+        start_time = time.time()
+        response = None
+        while time.time() - start_time < 1:  # 1 second timeout
+            response = arduino_manager.read(size=1)
+            if response:
+                break
+            time.sleep(0.1)
+
+        if response:
+            logger.info(f"Arduino responded: {response}")
+        else:
+            logger.warning("No response from Arduino, but connection established")
     else:
-        logger.warning("No response from Arduino, but connection established")
+        logger.warning(f"Arduino connection to {arduino_port} failed, will try alternative ports")
+
 except Exception as e:
     logger.error(f"Error initializing Arduino manager: {e}")
+
+# Try alternative ports if the primary connection failed
+if not arduino_manager or not arduino_manager.ser:
     available_ports = find_arduino_port()
     if available_ports:
         logger.info(f"Trying alternative ports: {available_ports}")
         for port in available_ports:
+            if port == arduino_port:  # Skip the port we already tried
+                continue
+
             try:
-                arduino_manager = ArduinoManager(port, arduino_baudrate)
-                arduino_manager.write(b't')
-                arduino_manager.flush()
-                time.sleep(0.5)
-                response = arduino_manager.read(size=10)
-                if response:
-                    logger.info(f"Arduino responded on port {port}: {response}")
-                    arduino_port = port
-                    break
+                arduino_manager = ArduinoManager(port, arduino_baudrate, fail_silently=True)
+                if arduino_manager.ser:
+                    arduino_manager.write(b't')
+                    arduino_manager.flush()
+
+                    # Use a timeout for reading the response
+                    start_time = time.time()
+                    response = None
+                    while time.time() - start_time < 1:  # 1 second timeout
+                        response = arduino_manager.read(size=1)
+                        if response:
+                            break
+                        time.sleep(0.1)
+
+                    if response:
+                        logger.info(f"Arduino responded on port {port}: {response}")
+                        arduino_port = port
+                        break
+                    else:
+                        logger.warning(f"No response from Arduino on port {port}, but connection established")
+                        arduino_port = port
+                        break
             except Exception as e:
                 logger.error(f"Failed on port {port}: {e}")
                 continue
 
+# If we still don't have a working Arduino connection, log a warning but continue
+if not arduino_manager or not arduino_manager.ser:
+    logger.warning("⚠️ No Arduino connection established. Door control will not be available.")
+    print("⚠️ No Arduino connection established. Door control will not be available.")
+else:
+    logger.info(f"✅ Arduino manager initialized successfully on port {arduino_port}")
+    print(f"✅ Arduino manager initialized successfully on port {arduino_port}")
+
 # Function to send command to Arduino with verification
-def send_arduino_command(command, retries=3):
+def send_arduino_command(command, retries=2):
     global arduino_manager
-    if not arduino_manager:
-        print("❌ Arduino manager not initialized")
-        try:
-            print("🔄 Attempting to reinitialize Arduino manager...")
-            arduino_manager = ArduinoManager(arduino_port, arduino_baudrate)
-            if not arduino_manager.ser:
-                print("❌ Failed to reinitialize Arduino manager")
+
+    # If Arduino is not connected, log a warning and return False
+    if not arduino_manager or not arduino_manager.ser:
+        cmd_type = "unlock" if command == b'u' else "lock" if command == b'l' else "other"
+        print(f"⚠️ Cannot send {cmd_type} command: Arduino not connected")
+        logger.warning(f"Cannot send {cmd_type} command: Arduino not connected")
+
+        # Try to reconnect only if it's a critical command
+        if command in [b'l', b'LOCK', b'lock']:  # Only try to reconnect for lock commands
+            try:
+                print("🔄 Attempting to reconnect to Arduino for critical lock command...")
+                arduino_manager = ArduinoManager(arduino_port, arduino_baudrate, fail_silently=True)
+                if not arduino_manager.ser:
+                    print("❌ Failed to reconnect to Arduino")
+                    return False
+                print("✅ Arduino reconnected successfully")
+            except Exception as e:
+                print(f"❌ Error reconnecting to Arduino: {e}")
                 return False
-            print("✅ Arduino manager reinitialized successfully")
-        except Exception as e:
-            print(f"❌ Error reinitializing Arduino manager: {e}")
+        else:
             return False
 
     cmd_type = "unlock" if command == b'u' else "lock" if command == b'l' else "other"
