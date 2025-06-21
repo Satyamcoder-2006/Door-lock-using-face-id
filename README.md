@@ -23,9 +23,6 @@ A next-generation smart door lock system using facial recognition, real-time mon
 
 ---
 
-## 🖥️ Screenshots
-
-> _Add your own screenshots here for a more visual README!_
 
 ---
 
